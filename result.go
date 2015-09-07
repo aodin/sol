@@ -1,12 +1,10 @@
 package sol
 
 import (
-	"errors"
+	"database/sql"
 	"fmt"
 	"reflect"
 )
-
-var ErrNoResult = errors.New("sol: no results to return")
 
 // Scanner is used for building mock result rows for testing
 type Scanner interface {
@@ -27,7 +25,7 @@ type Result struct {
 func (r *Result) One(arg interface{}) error {
 	// Confirm that there is at least one row to return
 	if ok := r.Next(); !ok {
-		return ErrNoResult
+		return sql.ErrNoRows
 	}
 
 	columns, err := r.Columns()
