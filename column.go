@@ -7,11 +7,30 @@ import (
 	"github.com/aodin/sol/types"
 )
 
+type Columnar interface {
+	Alias() string
+	FullName() string
+	Name() string
+	Table() *TableElem
+}
+
 type ColumnElem struct {
 	name     string
+	alias    string
 	table    *TableElem
 	datatype types.Type
 	invalid  bool
+}
+
+// Alias returns the Column's alias
+func (col ColumnElem) Alias() string {
+	return col.alias
+}
+
+// As sets an alias for this ColumnElem
+func (col ColumnElem) As(alias string) ColumnElem {
+	col.alias = alias
+	return col
 }
 
 // Columns returns the ColumnElem itself in a slice of ColumnElem. This
@@ -75,6 +94,36 @@ func (col ColumnElem) Modify(table *TableElem) error {
 // Table returns the column's TableElem
 func (col ColumnElem) Table() *TableElem {
 	return col.table
+}
+
+// Ordering
+// --------
+
+// Orerable implements the Orderable interface that allows the column itself
+// to be used in an OrderBy clause.
+func (col ColumnElem) Orderable() OrderedColumn {
+	return OrderedColumn{inner: col}
+}
+
+// Asc returns an OrderedColumn. It is the same as passing the column itself
+// to an OrderBy clause.
+func (col ColumnElem) Asc() OrderedColumn {
+	return OrderedColumn{inner: col}
+}
+
+// Desc returns an OrderedColumn that will sort in descending order.
+func (col ColumnElem) Desc() OrderedColumn {
+	return OrderedColumn{inner: col, desc: true}
+}
+
+// NullsFirst returns an OrderedColumn that will sort NULLs first.
+func (col ColumnElem) NullsFirst() OrderedColumn {
+	return OrderedColumn{inner: col, nullsFirst: true}
+}
+
+// NullsLast returns an OrderedColumn that will sort NULLs last.
+func (col ColumnElem) NullsLast() OrderedColumn {
+	return OrderedColumn{inner: col, nullsLast: true}
 }
 
 // Column is the constructor for a ColumnElem

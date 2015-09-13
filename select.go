@@ -18,6 +18,7 @@ type SelectStmt struct {
 	ConditionalStmt
 	tables  []*TableElem
 	columns []ColumnElem
+	orderBy []OrderedColumn
 	limit   int
 	offset  int
 }
@@ -76,7 +77,18 @@ func (stmt SelectStmt) Offset(offset int) SelectStmt {
 	return stmt
 }
 
-// TODO SelectColumn
+// OrderBy adds an ORDER BY to the SELECT statement. Only one ORDER BY
+// is allowed per statement. Additional calls to OrderBy will overwrite the
+// existing ORDER BY clause.
+func (stmt SelectStmt) OrderBy(ords ...Orderable) SelectStmt {
+	stmt.orderBy = make([]OrderedColumn, len(ords))
+	// Since columns may be given without an ordering method, perform the
+	// orderable conversion whether or not it is already ordered
+	for i, column := range ords {
+		stmt.orderBy[i] = column.Orderable()
+	}
+	return stmt
+}
 
 func SelectTable(table *TableElem, dest ...interface{}) (stmt SelectStmt) {
 	stmt.tables = []*TableElem{table}

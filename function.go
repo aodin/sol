@@ -1,10 +1,6 @@
 package sol
 
-// TODO ColumnElem interface type? Is Selectable too broad?
-func Function(clause interface{}, name string) {
+// TODO an entire clause should be columnar
+func Function(name string, expression Columnar) {
 
-}
-
-type function struct {
-	Name string
 }
