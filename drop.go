@@ -29,7 +29,7 @@ func (stmt DropStmt) String() string {
 // parameters.
 func (stmt DropStmt) Compile(d dialect.Dialect, p *Parameters) (string, error) {
 	if stmt.ifExists {
-		return fmt.Sprintf(`DROP TABLE IF EXISTS "%s"`, stmt.table.Name()), nil
+		return fmt.Sprintf(`DROP TABLE IF EXISTS %s`, stmt.table.Name()), nil
 	}
-	return fmt.Sprintf(`DROP TABLE "%s"`, stmt.table.Name()), nil
+	return fmt.Sprintf(`DROP TABLE %s`, stmt.table.Name()), nil
 }
