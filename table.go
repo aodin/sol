@@ -22,18 +22,13 @@ type TableElem struct {
 // construct an error message
 func (table TableElem) Column(name string) ColumnElem {
 	if table.Has(name) {
-		col := table.columns.Get(name)
-		elem, ok := col.(ColumnElem)
-		if ok {
+		switch elem := table.GetColumn(name).(type) {
+		case ColumnElem:
 			return elem
 		}
 		// TODO invalid column?
 	}
-	return ColumnElem{
-		name:    name,
-		table:   &table,
-		invalid: true,
-	}
+	return InvalidColumn(name, &table)
 }
 
 // C is an alias for Column
@@ -54,6 +49,10 @@ func (table *TableElem) Create() CreateStmt {
 // Create generates the table's DROP statement.
 func (table *TableElem) Drop() DropStmt {
 	return DropStmt{table: table}
+}
+
+func (table TableElem) GetColumn(name string) Columnar {
+	return table.columns.Get(name)
 }
 
 // Has returns true if the column exists in this table

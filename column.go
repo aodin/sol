@@ -253,3 +253,11 @@ func Column(name string, datatype types.Type) ColumnElem {
 		datatype: datatype,
 	}
 }
+
+func InvalidColumn(name string, table *TableElem) ColumnElem {
+	return ColumnElem{
+		name:    name,
+		table:   table,
+		invalid: true,
+	}
+}

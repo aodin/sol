@@ -46,6 +46,13 @@ type thing struct {
 	CreatedAt time.Time `db:",omitempty"`
 }
 
+var meetings = Table("meetings",
+	sql.Column("uuid", UUID().NotNull().Unique().Default(GenerateV4)),
+	sql.Column("time", TimestampRange()),
+)
+
+// TODO custom type for TimestampRange
+
 // Connect to an PostGres instance and execute some statements.
 func TestPostGres(t *testing.T) {
 	conf, err := getConfigOrUseTravis()
