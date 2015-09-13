@@ -25,4 +25,9 @@ func TestSelect(t *testing.T) {
 		Select(users.C("email"), contacts.C("value")),
 	)
 
+	// Add an alias
+	expect.SQL(
+		`SELECT "users"."email" AS "Email" FROM "users"`,
+		Select(users.C("email").As("Email")),
+	)
 }

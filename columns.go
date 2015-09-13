@@ -7,31 +7,31 @@ import (
 // Columns maps column to name to a ColumnElem. It also maintains an order
 // of columns.
 type Columns struct {
-	order []ColumnElem
-	c     map[string]ColumnElem
+	order []Columnar
+	c     map[string]Columnar
 }
 
-func (columns *Columns) add(column ColumnElem) error {
+func (columns *Columns) add(column Columnar) error {
 	// Tables cannot have duplicate column names
 	// TODO the column should already be assigned a table
-	if columns.Has(column.name) {
+	if columns.Has(column.Name()) {
 		return fmt.Errorf(
 			"sol: table '%s' already has a column named '%s'",
-			column.table.name,
-			column.name,
+			column.Table().name,
+			column.Name(),
 		)
 	}
 	columns.order = append(columns.order, column)
-	columns.c[column.name] = column
+	columns.c[column.Name()] = column
 	return nil
 }
 
 // All returns all columns as ColumnElems in their default order
-func (columns Columns) All() []ColumnElem {
+func (columns Columns) All() []Columnar {
 	return columns.order
 }
 
-func (columns Columns) Get(name string) ColumnElem {
+func (columns Columns) Get(name string) Columnar {
 	return columns.c[name]
 }
 

@@ -20,7 +20,7 @@ type TableElem struct {
 // Column returns the column as a ColumnElem. If the column does not exist
 // it will return the ColumnElem in an invalid state that will be used to
 // construct an error message
-func (table TableElem) Column(name string) ColumnElem {
+func (table TableElem) Column(name string) Columnar {
 	if table.Has(name) {
 		return table.columns.Get(name)
 	}
@@ -32,12 +32,12 @@ func (table TableElem) Column(name string) ColumnElem {
 }
 
 // C is an alias for Column
-func (table TableElem) C(name string) ColumnElem {
+func (table TableElem) C(name string) Columnar {
 	return table.Column(name)
 }
 
 // Columns returns all the table columns in the original schema order
-func (table TableElem) Columns() []ColumnElem {
+func (table TableElem) Columns() []Columnar {
 	return table.columns.order
 }
 
@@ -79,7 +79,7 @@ func Table(name string, modifiers ...Modifier) *TableElem {
 	}
 	table := &TableElem{
 		name:    name,
-		columns: Columns{c: make(map[string]ColumnElem)},
+		columns: Columns{c: make(map[string]Columnar)},
 	}
 	for _, modifier := range modifiers {
 		if err := modifier.Modify(table); err != nil {

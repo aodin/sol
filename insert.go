@@ -20,7 +20,7 @@ var (
 type InsertStmt struct {
 	Stmt
 	table   *TableElem
-	columns []ColumnElem
+	columns []Columnar
 	args    []interface{}
 	fields  fields
 }
@@ -42,7 +42,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	columns := make([]string, len(stmt.columns))
 	for i, column := range stmt.columns {
-		columns[i] = fmt.Sprintf(`%s`, column.Name())
+		columns[i] = fmt.Sprintf(`"%s"`, column.Name())
 	}
 
 	// args must be divisable by cols without remainder
@@ -330,9 +330,9 @@ func isEmptyValue(v reflect.Value) bool {
 }
 
 // TODO error if there was no match?
-func removeColumn(columns []ColumnElem, name string) []ColumnElem {
-	for i, column := range columns {
-		if column.name == name {
+func removeColumn(columns []Columnar, name string) []Columnar {
+	for i, col := range columns {
+		if col.Name() == name {
 			return append(columns[:i], columns[i+1:]...)
 		}
 	}
@@ -361,7 +361,7 @@ func valuesMap(stmt InsertStmt, values Values) (fields, error) {
 // Insert creates an INSERT statement for the given columns. There must be at
 // least one column and all columns must belong to the same table.
 func Insert(selections ...Selectable) (stmt InsertStmt) {
-	columns := make([]ColumnElem, 0)
+	columns := make([]Columnar, 0)
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: INSERT received a nil selectable - do the columns or tables you selected exist?")
@@ -377,19 +377,19 @@ func Insert(selections ...Selectable) (stmt InsertStmt) {
 
 	// The table is set from the first column
 	column := columns[0]
-	if column.table == nil {
+	if column.Table() == nil {
 		stmt.AddMeta(
 			"sol: attempting to INSERT to a column unattached to a table",
 		)
 		return
 	}
-	stmt.table = column.table
+	stmt.table = column.Table()
 
 	// Prepend the first column
 	for _, column := range columns {
 		// TODO Check column validity
 
-		if column.table != stmt.table {
+		if column.Table() != stmt.table {
 			stmt.AddMeta("sol: columns of an INSERT must all belong to the same table")
 			return
 		}

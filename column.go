@@ -8,8 +8,11 @@ import (
 )
 
 type Columnar interface {
+	Selectable
 	Alias() string
+	As(string) Columnar
 	FullName() string
+	IsInvalid() bool
 	Name() string
 	Table() *TableElem
 }
@@ -28,15 +31,15 @@ func (col ColumnElem) Alias() string {
 }
 
 // As sets an alias for this ColumnElem
-func (col ColumnElem) As(alias string) ColumnElem {
+func (col ColumnElem) As(alias string) Columnar {
 	col.alias = alias
 	return col
 }
 
 // Columns returns the ColumnElem itself in a slice of ColumnElem. This
 // method implements the Selectable interface.
-func (col ColumnElem) Columns() []ColumnElem {
-	return []ColumnElem{col}
+func (col ColumnElem) Columns() []Columnar {
+	return []Columnar{col}
 }
 
 // Create implements the Creatable interface that outputs a column of a
@@ -46,7 +49,7 @@ func (col ColumnElem) Create(d dialect.Dialect) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf(`%s %s`, col.Name(), compiled), nil
+	return fmt.Sprintf(`"%s" %s`, col.Name(), compiled), nil
 }
 
 // FullName prefixes the column name with the table name
@@ -54,8 +57,12 @@ func (col ColumnElem) FullName() string {
 	return fmt.Sprintf(`"%s"."%s"`, col.table.name, col.name)
 }
 
+func (col ColumnElem) IsInvalid() bool {
+	return col.invalid
+}
+
 func (col ColumnElem) Name() string {
-	return fmt.Sprintf(`"%s"`, col.name)
+	return fmt.Sprintf(`%s`, col.name)
 }
 
 // Modify implements the Modifier interface, allowing the ColumnElem to

@@ -10,14 +10,14 @@ import (
 // Selectable is an interface that allows both tables and columns to be
 // selected. It is implemented by TableElem and ColumnElem.
 type Selectable interface {
-	Columns() []ColumnElem
+	Columns() []Columnar
 }
 
 // SelectStmt is the internal representation of an SQL SELECT statement.
 type SelectStmt struct {
 	ConditionalStmt
 	tables  []*TableElem
-	columns []ColumnElem
+	columns []Columnar
 	orderBy []OrderedColumn
 	limit   int
 	offset  int
@@ -26,7 +26,11 @@ type SelectStmt struct {
 func (stmt SelectStmt) compileColumns() []string {
 	names := make([]string, len(stmt.columns))
 	for i, col := range stmt.columns {
-		names[i] = col.FullName()
+		compiled := fmt.Sprintf(`%s`, col.FullName())
+		if col.Alias() != "" {
+			compiled += fmt.Sprintf(` AS "%s"`, col.Alias())
+		}
+		names[i] = compiled
 	}
 	return names
 }
@@ -45,6 +49,13 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		strings.Join(stmt.compileColumns(), ", "),
 		strings.Join(stmt.compileTables(), ", "),
 	)
+	if len(stmt.orderBy) > 0 {
+		order := make([]string, len(stmt.orderBy))
+		for i, ord := range stmt.orderBy {
+			order[i], _ = ord.Compile(d, ps)
+		}
+		compiled += fmt.Sprintf(" ORDER BY %s", strings.Join(order, ", "))
+	}
 	if stmt.limit != 0 {
 		compiled += fmt.Sprintf(" LIMIT %d", stmt.limit)
 	}
@@ -99,7 +110,7 @@ func SelectTable(table *TableElem, dest ...interface{}) (stmt SelectStmt) {
 }
 
 func Select(selections ...Selectable) (stmt SelectStmt) {
-	columns := make([]ColumnElem, 0)
+	columns := make([]Columnar, 0)
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: received a nil selectable in Select()")
@@ -114,7 +125,7 @@ func Select(selections ...Selectable) (stmt SelectStmt) {
 	}
 
 	for _, column := range columns {
-		if column.invalid {
+		if column.IsInvalid() {
 			// TODO field error
 			stmt.AddMeta("sol: selected column does not exist")
 			return
