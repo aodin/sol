@@ -9,7 +9,7 @@ type Stmt struct {
 }
 
 // AddMeta adds a meta errors to the Stmt errors
-func (stmt Stmt) AddMeta(msg string, args ...interface{}) {
+func (stmt *Stmt) AddMeta(msg string, args ...interface{}) {
 	// Create errs if they don't exist
 	if stmt.errs.fields == nil {
 		stmt.errs = stmtErrors{fields: make(map[fieldError]string)}
@@ -30,20 +30,10 @@ func (stmt Stmt) Error() error {
 // ConditionalStmt includes SELECT, DELETE, and UPDATE statements
 type ConditionalStmt struct {
 	Stmt
-	cond Clause
+	where Clause
 }
 
 // Conditional returns the statement's conditional Clause
 func (stmt ConditionalStmt) Conditional() Clause {
-	return stmt.cond
+	return stmt.where
 }
-
-// AddConditional adds a conditional clause to the statement. If a conditional
-// clause already exists, they will be joined with an AND.
-// func (stmt *ConditionalStmt) AddConditional(cond Clause) {
-// 	if stmt.cond == nil {
-// 		stmt.cond = cond
-// 	} else {
-// 		stmt.cond = AllOf(stmt.cond, cond)
-// 	}
-// }

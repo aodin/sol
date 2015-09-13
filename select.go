@@ -44,11 +44,21 @@ func (stmt SelectStmt) compileTables() []string {
 }
 
 func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	if err := stmt.Error(); err != nil {
+		return "", err
+	}
 	compiled := fmt.Sprintf(
 		"SELECT %s FROM %s",
 		strings.Join(stmt.compileColumns(), ", "),
 		strings.Join(stmt.compileTables(), ", "),
 	)
+	if stmt.where != nil {
+		conditional, err := stmt.where.Compile(d, ps)
+		if err != nil {
+			return "", err
+		}
+		compiled += fmt.Sprintf(" WHERE %s", conditional)
+	}
 	if len(stmt.orderBy) > 0 {
 		order := make([]string, len(stmt.orderBy))
 		for i, ord := range stmt.orderBy {
@@ -101,6 +111,22 @@ func (stmt SelectStmt) OrderBy(ords ...Orderable) SelectStmt {
 	return stmt
 }
 
+// Where adds a conditional clause to the SELECT statement. Only one WHERE
+// is allowed per statement. Additional calls to Where will overwrite the
+// existing WHERE clause.
+func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
+	if len(conditions) > 1 {
+		// By default, multiple where clauses will be joined will AllOf
+		stmt.where = AllOf(conditions...)
+	} else if len(conditions) == 1 {
+		stmt.where = conditions[0]
+	} else {
+		// Clear the existing conditions
+		stmt.where = nil
+	}
+	return stmt
+}
+
 func SelectTable(table *TableElem, dest ...interface{}) (stmt SelectStmt) {
 	stmt.tables = []*TableElem{table}
 
@@ -126,8 +152,9 @@ func Select(selections ...Selectable) (stmt SelectStmt) {
 
 	for _, column := range columns {
 		if column.IsInvalid() {
-			// TODO field error
-			stmt.AddMeta("sol: selected column does not exist")
+			stmt.AddMeta(
+				"sol: the column %s does not exist", column.FullName(),
+			)
 			return
 		}
 		stmt.columns = append(stmt.columns, column)

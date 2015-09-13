@@ -2,6 +2,7 @@ package sol
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
@@ -40,6 +41,12 @@ func (col ColumnElem) As(alias string) Columnar {
 // method implements the Selectable interface.
 func (col ColumnElem) Columns() []Columnar {
 	return []Columnar{col}
+}
+
+// Compile produces the dialect specific SQL and adds any parameters
+// in the clause to the given Parameters instance
+func (col ColumnElem) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	return col.FullName(), nil
 }
 
 // Create implements the Creatable interface that outputs a column of a
@@ -103,8 +110,114 @@ func (col ColumnElem) Table() *TableElem {
 	return col.table
 }
 
+// Conditionals
+// ----
+const (
+	Equal              = "="
+	NotEqual           = "<>"
+	GreaterThan        = ">"
+	GreaterThanOrEqual = ">="
+	LessThan           = "<"
+	LessThanOrEqual    = "<="
+)
+
+func (col ColumnElem) operator(op string, param interface{}) BinaryClause {
+	return BinaryClause{
+		Pre:  col,
+		Post: &Parameter{param},
+		Sep:  fmt.Sprintf(" %s ", op),
+	}
+}
+
+// Equals creates an equals clause that can be used in conditional clauses.
+//  table.Select().Where(table.C("id").Equals(3))
+func (col ColumnElem) Equals(param interface{}) BinaryClause {
+	return col.operator(Equal, param)
+}
+
+// DoesNotEqual creates a does not equal clause that can be used in
+// conditional clauses.
+//  table.Select().Where(table.C("id").DoesNotEqual(3))
+func (col ColumnElem) DoesNotEqual(param interface{}) BinaryClause {
+	return col.operator(NotEqual, param)
+}
+
+// LessThan creates a less than clause that can be used in conditional clauses.
+//  table.Select().Where(table.C("id").LessThan(3))
+func (col ColumnElem) LessThan(param interface{}) BinaryClause {
+	return col.operator(LessThan, param)
+}
+
+// GreaterThan creates a greater than clause that can be used in conditional
+// clauses.
+//  table.Select().Where(table.C("id").GreaterThan(3))
+func (col ColumnElem) GreaterThan(param interface{}) BinaryClause {
+	return col.operator(GreaterThan, param)
+}
+
+// LTE creates a less than or equal to clause that can be used in conditional
+// clauses.
+//  table.Select().Where(table.C("id").LTE(3))
+func (col ColumnElem) LTE(param interface{}) BinaryClause {
+	return col.operator(LessThanOrEqual, param)
+}
+
+// GTE creates a greater than or equal to clause that can be used in
+// conditional clauses.
+//  table.Select().Where(table.C("id").GTE(3))
+func (col ColumnElem) GTE(param interface{}) BinaryClause {
+	return col.operator(GreaterThanOrEqual, param)
+}
+
+// IsNull creates a comparison clause that can be used for checking existence
+// of NULLs in conditional clauses.
+//  table.Select().Where(table.C("name").IsNull())
+func (col ColumnElem) IsNull() UnaryClause {
+	return UnaryClause{Pre: col, Sep: " IS NULL"}
+}
+
+// IsNotNull creates a comparison clause that can be used for checking absence
+// of NULLs in conditional clauses.
+//  table.Select().Where(table.C("name").IsNotNull())
+func (col ColumnElem) IsNotNull() UnaryClause {
+	return UnaryClause{Pre: col, Sep: " IS NOT NULL"}
+}
+
+// In creates a comparison clause with an IN operator that can be used in
+// conditional clauses. An interface is used because the args may be of any
+// type: ints, strings...
+//  table.Select().Where(table.C("id").In([]int64{1, 2, 3}))
+func (col ColumnElem) In(args interface{}) BinaryClause {
+	// Create the inner array clause and parameters
+	a := ArrayClause{clauses: make([]Clause, 0), sep: ", "}
+
+	// Use reflect to get arguments from the interface only if it is a slice
+	s := reflect.ValueOf(args)
+	switch s.Kind() {
+	case reflect.Slice:
+		for i := 0; i < s.Len(); i++ {
+			a.clauses = append(a.clauses, &Parameter{s.Index(i).Interface()})
+		}
+	}
+	// TODO What if something other than a slice is given?
+	// TODO This statement should be able to take clauses / subqueries
+	return BinaryClause{
+		Pre:  col,
+		Post: FuncClause{Inner: a},
+		Sep:  " IN ",
+	}
+}
+
+func (col ColumnElem) Between(a, b interface{}) Clause {
+	return AllOf(col.GTE(a), col.LTE(b))
+}
+
+func (col ColumnElem) NotBetween(a, b interface{}) Clause {
+	return AnyOf(col.LessThan(a), col.GreaterThan(b))
+}
+
 // Ordering
-// --------
+// ----
 
 // Orerable implements the Orderable interface that allows the column itself
 // to be used in an OrderBy clause.

@@ -20,9 +20,14 @@ type TableElem struct {
 // Column returns the column as a ColumnElem. If the column does not exist
 // it will return the ColumnElem in an invalid state that will be used to
 // construct an error message
-func (table TableElem) Column(name string) Columnar {
+func (table TableElem) Column(name string) ColumnElem {
 	if table.Has(name) {
-		return table.columns.Get(name)
+		col := table.columns.Get(name)
+		elem, ok := col.(ColumnElem)
+		if ok {
+			return elem
+		}
+		// TODO invalid column?
 	}
 	return ColumnElem{
 		name:    name,
@@ -32,7 +37,7 @@ func (table TableElem) Column(name string) Columnar {
 }
 
 // C is an alias for Column
-func (table TableElem) C(name string) Columnar {
+func (table TableElem) C(name string) ColumnElem {
 	return table.Column(name)
 }
 
