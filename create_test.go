@@ -12,11 +12,12 @@ func TestCreate(t *testing.T) {
 	expect.SQL(
 		`CREATE TABLE "users" (
   "id" INTEGER,
-  "email" VARCHAR(256) NOT NULL UNIQUE,
+  "email" VARCHAR(256) NOT NULL,
   "name" VARCHAR(32) NOT NULL,
   "password" VARCHAR,
   "created_at" TIMESTAMP,
-  PRIMARY KEY ("id")
+  PRIMARY KEY ("id"),
+  UNIQUE ("email")
 );`,
 		users.Create(),
 	)

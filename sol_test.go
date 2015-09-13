@@ -9,7 +9,7 @@ import (
 // Valid schemas should not panic
 var users = Table("users",
 	Column("id", types.Integer()),
-	Column("email", types.Varchar().Limit(256).NotNull().Unique()),
+	Column("email", types.Varchar().Limit(256).NotNull()), // TODO unique
 	Column("name", types.Varchar().Limit(32).NotNull()),
 	Column("password", types.Varchar()),
 	Column("created_at", types.Timestamp()),
@@ -27,10 +27,10 @@ var contacts = Table("contacts",
 )
 
 type user struct {
-	ID        uint64
+	ID        uint64 `db:",omitempty"`
 	Email     string
 	Name      string
-	CreatedAt time.Time
+	CreatedAt time.Time `db:",omitempty"`
 }
 
 type contact struct {

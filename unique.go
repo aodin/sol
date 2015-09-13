@@ -2,10 +2,26 @@ package sol
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/aodin/sol/dialect"
+	"github.com/aodin/sol/types"
 )
 
 // UniqueArray is a list of columns representing a table UNIQUE constraint.
 type UniqueArray []string
+
+var _ types.Type = UniqueArray{}
+var _ Modifier = UniqueArray{}
+
+// Create returns the proper syntax for CREATE TABLE commands.
+func (unique UniqueArray) Create(d dialect.Dialect) (string, error) {
+	columns := make([]string, len(unique))
+	for i, col := range unique {
+		columns[i] = fmt.Sprintf(`"%s"`, col)
+	}
+	return fmt.Sprintf("UNIQUE (%s)", strings.Join(columns, ", ")), nil
+}
 
 // Has returns true if the UniqueArray contains the given column name.
 func (unique UniqueArray) Has(name string) bool {
@@ -30,8 +46,7 @@ func (unique UniqueArray) Modify(table *TableElem) error {
 		}
 	}
 	table.uniques = append(table.uniques, unique)
-
-	// TODO Add the unique to the create array
+	table.creates = append(table.creates, unique)
 	return nil
 }
 

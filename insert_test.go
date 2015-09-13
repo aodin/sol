@@ -23,6 +23,12 @@ func TestInsert(t *testing.T) {
 		Insert(users.C("name"), users.C("password")),
 		nil, nil,
 	)
+
+	expect.SQL(
+		`INSERT INTO "users" ("email", "name") VALUES ($1, $2)`,
+		users.Insert().Values(user{Name: "admin", Email: "admin@example.com"}),
+		"admin@example.com", "admin",
+	)
 }
 
 func TestIsEmptyValue(t *testing.T) {
