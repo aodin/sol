@@ -128,6 +128,7 @@ func AlignColumns(columns []string, fields []field) fields {
 			// Allow snake case columns to be declared in camel case
 			alias := camelToSnake(field.column)
 			if field.column == column || alias == column {
+				field.column = column
 				aligned[i] = field
 				break
 			}

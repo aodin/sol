@@ -38,7 +38,7 @@ var _ dialect.Dialect = &PostGres{}
 
 var things = sql.Table("things",
 	sql.Column("name", types.Varchar()),
-	sql.Column("created_at", types.Timestamp()), // TODO auto-timestamp?
+	sql.Column("created_at", Timestamp().Default(Now)),
 )
 
 type thing struct {

@@ -22,7 +22,7 @@ var things = sql.Table("things",
 
 type thing struct {
 	Name      string
-	CreatedAt time.Time `db:",omitempty"`
+	CreatedAt *time.Time `db:",omitempty"`
 }
 
 // Connect to an in-memory sqlite3 instance and execute some statements.
@@ -36,12 +36,8 @@ func TestSqlite3(t *testing.T) {
 		`Create table "things" should not error`,
 	)
 
-	alphabet := thing{
-		Name:      "Alphabet",
-		CreatedAt: time.Now(),
-	}
 	require.Nil(t,
-		conn.Query(things.Insert().Values(alphabet)),
+		conn.Query(things.Insert().Values(thing{Name: "Alphabet"})),
 		`Insert into table "things" should not error`,
 	)
 
@@ -49,18 +45,13 @@ func TestSqlite3(t *testing.T) {
 	conn.Query(things.Select().Limit(1), &company)
 
 	assert.Equal(t, "Alphabet", company.Name)
-	assert.False(t, company.CreatedAt.IsZero())
 
 	// Start a transaction and roll it back
 	tx, err := conn.Begin()
 	require.Nil(t, err, "Creating a new transaction should not error")
 
-	beta := thing{
-		Name: "Beta",
-	}
-
 	require.Nil(t,
-		tx.Query(things.Insert().Values(beta)),
+		tx.Query(things.Insert().Values(thing{Name: "Beta"})),
 		`Insert into table "things" within a transaction should not error`,
 	)
 
