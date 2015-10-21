@@ -25,6 +25,11 @@ type InsertStmt struct {
 	fields  fields
 }
 
+// Table returns the INSERT statement's table
+func (stmt InsertStmt) Table() *TableElem {
+	return stmt.table
+}
+
 // Compile outputs the INSERT statement using the given dialect and parameters.
 // An error may be returned because of a pre-existing error or because
 // an error occurred during compilation.

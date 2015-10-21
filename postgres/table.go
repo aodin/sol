@@ -30,11 +30,9 @@ func (table TableElem) C(name string) ColumnElem {
 	return table.Column(name)
 }
 
-// Insert is an alias for Insert(table). It will create an INSERT statement
-// for the entire table. Specify the insert values with the method Values().
-// func (table *TableElem) Insert() InsertStmt {
-// 	return Insert(table)
-// }
+func (table *TableElem) Insert() InsertStmt {
+	return Insert(table)
+}
 
 // Table creates a new table element. It will panic on any errors.
 func Table(name string, modifiers ...sol.Modifier) *TableElem {

@@ -23,9 +23,10 @@ type SelectStmt struct {
 	offset  int
 }
 
-func (stmt SelectStmt) compileColumns() []string {
-	names := make([]string, len(stmt.columns))
-	for i, col := range stmt.columns {
+// TODO where should this function live? Also used in postgres.InsertStmt
+func CompileColumns(columns []Columnar) []string {
+	names := make([]string, len(columns))
+	for i, col := range columns {
 		compiled := fmt.Sprintf(`%s`, col.FullName())
 		if col.Alias() != "" {
 			compiled += fmt.Sprintf(` AS "%s"`, col.Alias())
@@ -49,7 +50,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	}
 	compiled := fmt.Sprintf(
 		"SELECT %s FROM %s",
-		strings.Join(stmt.compileColumns(), ", "),
+		strings.Join(CompileColumns(stmt.columns), ", "),
 		strings.Join(stmt.compileTables(), ", "),
 	)
 	if stmt.where != nil {
