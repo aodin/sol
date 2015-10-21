@@ -68,6 +68,18 @@ func TestSqlite3(t *testing.T) {
 	var one []thing
 	conn.Query(things.Select(), &one)
 	assert.Equal(t, 1, len(one))
+
+	// Test the panicConn
+	var another thing
+	conn.Must().Query(
+		things.Select().OrderBy(things.C("name")).Limit(1), &another,
+	)
+	assert.Equal(t, "Alphabet", another.Name)
+
+	assert.Panics(t, func() {
+		// A non-pointer receiver will error, and with Must(), will panic
+		conn.Must().Query(things.Select(), all)
+	})
 }
 
 // TestSqlite3_Transaction tests the transactional operations of Sqlite3,
@@ -149,4 +161,17 @@ func TestSqlite3_Transaction(t *testing.T) {
 	var fifth []thing
 	require.Nil(t, conn.Query(things.Select(), &fifth))
 	assert.Equal(t, 2, len(fifth), "Thing E should have been committed")
+
+	// Create a panicTx from the panicConnection
+	panicTx, _ := conn.Must().Begin()
+
+	assert.Panics(t, func() {
+		// A non-pointer receiver will error, and with Must(), will panic
+		panicTx.Query(things.Select(), fifth)
+	})
+
+	// A valid transaction will still commit
+	var one thing
+	panicTx.Query(things.Select(), &one)
+	assert.NotEqual(t, "", one.Name)
 }

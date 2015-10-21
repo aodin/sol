@@ -2,6 +2,7 @@ package sol
 
 import (
 	"database/sql"
+	"log"
 	"reflect"
 
 	"github.com/aodin/sol/dialect"
@@ -144,6 +145,17 @@ func (c *conn) String(stmt Executable) string {
 	return compiled
 }
 
+// PanicOnError returns a panicConn, which implements the Connection
+// interface but will also panic on any error
+func (c *conn) PanicOnError() panicConn {
+	return panicConn{c}
+}
+
+// Must is an alias for PanicOnError
+func (c *conn) Must() panicConn {
+	return c.PanicOnError()
+}
+
 // Open connects to the database using the given driver and credentials.
 // It returns a database connection pool and an error if one occurred.
 func Open(driver, credentials string) (*conn, error) {
@@ -160,14 +172,47 @@ func Open(driver, credentials string) (*conn, error) {
 	return &conn{db: db, dialect: d}, nil
 }
 
+// panicConn is a connection that panics on error
+type panicConn struct {
+	*conn
+}
+
+// Begin calls the internal conn Begin(), but will panic on any error
+// and returns a panicTx instead of a transaction
+func (c panicConn) Begin() (TX, error) {
+	tx, err := c.conn.Begin()
+	if err != nil {
+		log.Panic(err)
+	}
+	return panicTx{tx.(*transaction)}, err
+}
+
+// Close calls the internal conn Close(), but will panic on any error
+func (c panicConn) Close() error {
+	err := c.conn.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	return err
+}
+
+// Query calls the internal conn Query(), but will panic on any error
+func (c panicConn) Query(stmt Executable, dest ...interface{}) error {
+	err := c.conn.Query(stmt, dest...)
+	if err != nil {
+		log.Panic(err)
+	}
+	return err
+}
+
 type transaction struct {
 	*sql.Tx
 	dialect    dialect.Dialect
 	successful bool
 }
 
-// TODO Are nested transactions possible? Or should this error?
 // Begin simply returns the transaction itself
+// TODO Are nested transactions possible? Or should this error?
 func (tx *transaction) Begin() (TX, error) {
 	return tx, nil
 }
@@ -195,4 +240,32 @@ func (tx *transaction) String(stmt Executable) string {
 		return err.Error()
 	}
 	return compiled
+}
+
+type panicTx struct {
+	*transaction
+}
+
+// Begin returns the panicTx itself
+// TODO Are nested transactions possible? Or should this error?
+func (tx panicTx) Begin() (TX, error) {
+	return tx, nil
+}
+
+// Close will call the internal transaction Close(). It will panic on error.
+func (tx panicTx) Close() error {
+	err := tx.transaction.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	return err
+}
+
+// Query will call the internal transaction Query(). It will panic on error.
+func (tx panicTx) Query(stmt Executable, dest ...interface{}) error {
+	err := tx.transaction.Query(stmt, dest...)
+	if err != nil {
+		log.Panic(err)
+	}
+	return err
 }
