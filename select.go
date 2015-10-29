@@ -16,11 +16,13 @@ type Selectable interface {
 // SelectStmt is the internal representation of an SQL SELECT statement.
 type SelectStmt struct {
 	ConditionalStmt
-	tables  []*TableElem
-	columns []Columnar
-	orderBy []OrderedColumn
-	limit   int
-	offset  int
+	tables     []*TableElem
+	columns    []Columnar
+	orderBy    []OrderedColumn
+	isDistinct bool
+	distincts  []Columnar
+	limit      int
+	offset     int
 }
 
 // TODO where should this function live? Also used in postgres.InsertStmt
@@ -48,11 +50,29 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	if err := stmt.Error(); err != nil {
 		return "", err
 	}
-	compiled := fmt.Sprintf(
-		"SELECT %s FROM %s",
+
+	compiled := "SELECT"
+
+	// DISTINCT
+	if stmt.isDistinct {
+		compiled += " DISTINCT"
+		if len(stmt.distincts) > 0 {
+			distincts := make([]string, len(stmt.distincts))
+			for i, col := range stmt.distincts {
+				distincts[i] = fmt.Sprintf(`%s`, col.FullName())
+			}
+			compiled += fmt.Sprintf(
+				" ON (%s)", strings.Join(distincts, ", "),
+			)
+		}
+	}
+
+	compiled += fmt.Sprintf(
+		" %s FROM %s",
 		strings.Join(CompileColumns(stmt.columns), ", "),
 		strings.Join(stmt.compileTables(), ", "),
 	)
+
 	if stmt.where != nil {
 		conditional, err := stmt.where.Compile(d, ps)
 		if err != nil {
@@ -60,6 +80,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		}
 		compiled += fmt.Sprintf(" WHERE %s", conditional)
 	}
+
 	if len(stmt.orderBy) > 0 {
 		order := make([]string, len(stmt.orderBy))
 		for i, ord := range stmt.orderBy {
@@ -67,9 +88,11 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		}
 		compiled += fmt.Sprintf(" ORDER BY %s", strings.Join(order, ", "))
 	}
+
 	if stmt.limit != 0 {
 		compiled += fmt.Sprintf(" LIMIT %d", stmt.limit)
 	}
+
 	if stmt.offset != 0 {
 		compiled += fmt.Sprintf(" OFFSET %d", stmt.offset)
 	}
@@ -83,6 +106,21 @@ func (stmt SelectStmt) hasTable(name string) bool {
 		}
 	}
 	return false
+}
+
+// All removes the DISTINCT clause from the SELECT statment.
+func (stmt SelectStmt) All() SelectStmt {
+	stmt.isDistinct = false
+	stmt.distincts = nil
+	return stmt
+}
+
+// Distinct adds a DISTINCT clause to the SELECT statement. If any
+// column are provided, the clause will be compiled as a DISTINCT ON.
+func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
+	stmt.isDistinct = true
+	stmt.distincts = columns
+	return stmt
 }
 
 // Limit sets the limit of the SELECT statement.

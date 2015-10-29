@@ -37,7 +37,7 @@ func TestSelect(t *testing.T) {
 		Select(users.C("email")).OrderBy(users.C("email").Desc()),
 	)
 
-	// Mutiple conditionals will joined with AND by default
+	// Mutiple conditionals will be merged with AND by default
 	expect.SQL(
 		`SELECT "users"."name" FROM "users" WHERE ("users"."id" <> $1 AND "users"."name" = $2)`,
 		Select(
@@ -47,6 +47,23 @@ func TestSelect(t *testing.T) {
 			users.C("name").Equals("admin"),
 		),
 		1, "admin",
+	)
+
+	// Distinct
+	expect.SQL(
+		`SELECT DISTINCT "users"."name" FROM "users"`,
+		Select(users.C("name")).Distinct(),
+	)
+
+	expect.SQL(
+		`SELECT DISTINCT ON ("users"."id", "users"."name") "users"."name" FROM "users"`,
+		Select(users.C("name")).Distinct(users.C("id"), users.C("name")),
+	)
+
+	// All is the default and will remove any existing Distinct clause
+	expect.SQL(
+		`SELECT "users"."name" FROM "users"`,
+		Select(users.C("name")).Distinct().All(),
 	)
 
 	// Test limit
