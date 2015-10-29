@@ -18,6 +18,7 @@ type SelectStmt struct {
 	ConditionalStmt
 	tables     []*TableElem
 	columns    []Columnar
+	groupBy    []Columnar
 	orderBy    []OrderedColumn
 	isDistinct bool
 	distincts  []Columnar
@@ -81,6 +82,15 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		compiled += fmt.Sprintf(" WHERE %s", conditional)
 	}
 
+	// GROUP BY ...
+	if len(stmt.groupBy) > 0 {
+		groupBy := make([]string, len(stmt.groupBy))
+		for i, col := range stmt.groupBy {
+			groupBy[i] = fmt.Sprintf(`%s`, col.FullName())
+		}
+		compiled += fmt.Sprintf(" GROUP BY %s", strings.Join(groupBy, ", "))
+	}
+
 	if len(stmt.orderBy) > 0 {
 		order := make([]string, len(stmt.orderBy))
 		for i, ord := range stmt.orderBy {
@@ -123,17 +133,27 @@ func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
 	return stmt
 }
 
-// Limit sets the limit of the SELECT statement.
-func (stmt SelectStmt) Limit(limit int) SelectStmt {
-	// TODO Error (or warning) if limit was already set
-	stmt.limit = limit
+// Where adds a conditional clause to the SELECT statement. Only one WHERE
+// is allowed per statement. Additional calls to Where will overwrite the
+// existing WHERE clause.
+func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
+	if len(conditions) > 1 {
+		// By default, multiple where clauses will be joined will AllOf
+		stmt.where = AllOf(conditions...)
+	} else if len(conditions) == 1 {
+		stmt.where = conditions[0]
+	} else {
+		// Clear the existing conditions
+		stmt.where = nil
+	}
 	return stmt
 }
 
-// Offset sets the offset of the SELECT statement.
-func (stmt SelectStmt) Offset(offset int) SelectStmt {
-	// TODO Error (or warning) if offset was already set
-	stmt.offset = offset
+// GroupBy adds a GROUP BY to the SELECT statement. Only one GROUP BY
+// is allowed per statement. Additional calls to GroupBy will overwrite the
+// existing GROUP BY clause.
+func (stmt SelectStmt) GroupBy(columns ...Columnar) SelectStmt {
+	stmt.groupBy = columns
 	return stmt
 }
 
@@ -150,19 +170,17 @@ func (stmt SelectStmt) OrderBy(ords ...Orderable) SelectStmt {
 	return stmt
 }
 
-// Where adds a conditional clause to the SELECT statement. Only one WHERE
-// is allowed per statement. Additional calls to Where will overwrite the
-// existing WHERE clause.
-func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
-	if len(conditions) > 1 {
-		// By default, multiple where clauses will be joined will AllOf
-		stmt.where = AllOf(conditions...)
-	} else if len(conditions) == 1 {
-		stmt.where = conditions[0]
-	} else {
-		// Clear the existing conditions
-		stmt.where = nil
-	}
+// Limit sets the limit of the SELECT statement.
+func (stmt SelectStmt) Limit(limit int) SelectStmt {
+	// TODO Error (or warning) if limit was already set
+	stmt.limit = limit
+	return stmt
+}
+
+// Offset sets the offset of the SELECT statement.
+func (stmt SelectStmt) Offset(offset int) SelectStmt {
+	// TODO Error (or warning) if offset was already set
+	stmt.offset = offset
 	return stmt
 }
 

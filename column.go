@@ -16,6 +16,10 @@ type Columnar interface {
 	IsInvalid() bool
 	Name() string
 	Table() *TableElem
+	Asc() OrderedColumn
+	Desc() OrderedColumn
+	NullsFirst() OrderedColumn
+	NullsLast() OrderedColumn
 }
 
 type ColumnElem struct {

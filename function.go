@@ -31,6 +31,27 @@ func (f FunctionElem) FullName() string {
 	return fmt.Sprintf(`%s(%s)`, f.name, f.Columnar.FullName())
 }
 
+// Asc returns an OrderedColumn. It is the same as passing the column itself
+// to an OrderBy clause.
+func (f FunctionElem) Asc() OrderedColumn {
+	return OrderedColumn{inner: f}
+}
+
+// Desc returns an OrderedColumn that will sort in descending order.
+func (f FunctionElem) Desc() OrderedColumn {
+	return OrderedColumn{inner: f, desc: true}
+}
+
+// NullsFirst returns an OrderedColumn that will sort NULLs first.
+func (f FunctionElem) NullsFirst() OrderedColumn {
+	return OrderedColumn{inner: f, nullsFirst: true}
+}
+
+// NullsLast returns an OrderedColumn that will sort NULLs last.
+func (f FunctionElem) NullsLast() OrderedColumn {
+	return OrderedColumn{inner: f, nullsLast: true}
+}
+
 // TODO an entire expression can be columnar
 func Function(name string, expression Columnar) FunctionElem {
 	return FunctionElem{Columnar: expression, name: name}

@@ -66,6 +66,19 @@ func TestSelect(t *testing.T) {
 		Select(users.C("name")).Distinct().All(),
 	)
 
+	// Build a GROUP BY statement using an aggregate
+	expect.SQL(
+		`SELECT "contacts"."user_id", count("contacts"."id") FROM "contacts" GROUP BY "contacts"."user_id" ORDER BY count("contacts"."id") DESC`,
+		Select(
+			contacts.C("user_id"),
+			Count(contacts.C("id")),
+		).GroupBy(
+			contacts.C("user_id"),
+		).OrderBy(
+			Count(contacts.C("id")).Desc(),
+		),
+	)
+
 	// Test limit
 	expect.SQL(
 		`SELECT "users"."name" FROM "users" LIMIT 1`,
