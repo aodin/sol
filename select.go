@@ -19,6 +19,7 @@ type SelectStmt struct {
 	tables     []*TableElem
 	columns    []Columnar
 	groupBy    []Columnar
+	having     Clause
 	orderBy    []OrderedColumn
 	isDistinct bool
 	distincts  []Columnar
@@ -138,7 +139,7 @@ func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
 // existing WHERE clause.
 func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
 	if len(conditions) > 1 {
-		// By default, multiple where clauses will be joined will AllOf
+		// By default, multiple where clauses will be joined using AllOf
 		stmt.where = AllOf(conditions...)
 	} else if len(conditions) == 1 {
 		stmt.where = conditions[0]
@@ -154,6 +155,22 @@ func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
 // existing GROUP BY clause.
 func (stmt SelectStmt) GroupBy(columns ...Columnar) SelectStmt {
 	stmt.groupBy = columns
+	return stmt
+}
+
+// Having adds a conditional clause to the SELECT statement. Only one HAVING
+// is allowed per statement. Additional calls to Having will overwrite the
+// existing HAVING clause.
+func (stmt SelectStmt) Having(conditions ...Clause) SelectStmt {
+	if len(conditions) > 1 {
+		// By default, multiple having clauses will be joined using AllOf
+		stmt.having = AllOf(conditions...)
+	} else if len(conditions) == 1 {
+		stmt.having = conditions[0]
+	} else {
+		// Clear the existing conditions
+		stmt.having = nil
+	}
 	return stmt
 }
 

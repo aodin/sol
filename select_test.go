@@ -68,15 +68,18 @@ func TestSelect(t *testing.T) {
 
 	// Build a GROUP BY statement using an aggregate
 	expect.SQL(
-		`SELECT "contacts"."user_id", count("contacts"."id") FROM "contacts" GROUP BY "contacts"."user_id" ORDER BY count("contacts"."id") DESC`,
+		`SELECT "contacts"."user_id", count("contacts"."id") FROM "contacts" GROUP BY "contacts"."user_id" HAVING count("contacts"."id") >= $1 ORDER BY count("contacts"."id") DESC`,
 		Select(
 			contacts.C("user_id"),
 			Count(contacts.C("id")),
 		).GroupBy(
 			contacts.C("user_id"),
+		).Having(
+			Count(contacts.C("id")).GTE(2),
 		).OrderBy(
 			Count(contacts.C("id")).Desc(),
 		),
+		2,
 	)
 
 	// Test limit
