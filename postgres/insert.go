@@ -40,10 +40,21 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *sol.Parameters) (string, e
 }
 
 // Returning adds a RETURNING clause to the statement.
+// TODO How to remove a returning?
 func (stmt InsertStmt) Returning(selections ...sol.Selectable) InsertStmt {
 	// TODO An INSERT ... RETURING for all columns of the inserted row can
 	// also use the syntax RETURNING *, see:
 	// http://www.postgresql.org/docs/devel/static/sql-insert.html
+
+	// If no selections were provided, default to the table
+	if len(selections) == 0 {
+		for _, column := range stmt.Table().Columns() {
+			stmt.returning = append(stmt.returning, column)
+		}
+		return stmt
+	}
+
+	// If selections have been specified, use those instead
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta(
