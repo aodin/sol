@@ -30,7 +30,8 @@ func (ord OrderedColumn) String() string {
 }
 
 func (ord OrderedColumn) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
-	compiled := ord.inner.FullName()
+	// TODO error ignored
+	compiled, _ := ord.inner.Compile(d, ps)
 	if ord.desc {
 		compiled += " DESC"
 	}

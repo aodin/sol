@@ -31,7 +31,8 @@ type SelectStmt struct {
 func CompileColumns(columns []Columnar) []string {
 	names := make([]string, len(columns))
 	for i, col := range columns {
-		compiled := fmt.Sprintf(`%s`, col.FullName())
+		// Ignore dialect, parameters and error?
+		compiled, _ := col.Compile(nil, nil)
 		if col.Alias() != "" {
 			compiled += fmt.Sprintf(` AS "%s"`, col.Alias())
 		}
@@ -90,6 +91,15 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 			groupBy[i] = fmt.Sprintf(`%s`, col.FullName())
 		}
 		compiled += fmt.Sprintf(" GROUP BY %s", strings.Join(groupBy, ", "))
+	}
+
+	//  HAVING
+	if stmt.having != nil {
+		conditional, err := stmt.having.Compile(d, ps)
+		if err != nil {
+			return "", err
+		}
+		compiled += fmt.Sprintf(" HAVING %s", conditional)
 	}
 
 	if len(stmt.orderBy) > 0 {

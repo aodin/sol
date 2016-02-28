@@ -9,25 +9,30 @@ import (
 )
 
 type Columnar interface {
+	Comparable
+	Compiles
 	Selectable
+	AddOperator(string) ColumnElem // TODO or Columnar?
 	Alias() string
 	As(string) Columnar
 	FullName() string
 	IsInvalid() bool
 	Name() string
 	Table() *TableElem
-	Asc() OrderedColumn
-	Desc() OrderedColumn
-	NullsFirst() OrderedColumn
-	NullsLast() OrderedColumn
 }
 
 type ColumnElem struct {
-	name     string
-	alias    string
-	table    *TableElem
-	datatype types.Type
-	invalid  bool
+	operators []string // TODO or nested custom type?
+	name      string
+	alias     string
+	table     *TableElem
+	datatype  types.Type
+	invalid   bool
+}
+
+func (col ColumnElem) AddOperator(operator string) ColumnElem {
+	col.operators = append([]string{operator}, col.operators...) // prepend
+	return col
 }
 
 // Alias returns the Column's alias
@@ -50,7 +55,11 @@ func (col ColumnElem) Columns() []Columnar {
 // Compile produces the dialect specific SQL and adds any parameters
 // in the clause to the given Parameters instance
 func (col ColumnElem) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
-	return col.FullName(), nil
+	str := col.FullName()
+	for _, operator := range col.operators {
+		str = fmt.Sprintf(`%s(%s)`, operator, str)
+	}
+	return str, nil
 }
 
 // Create implements the Creatable interface that outputs a column of a
@@ -64,6 +73,7 @@ func (col ColumnElem) Create(d dialect.Dialect) (string, error) {
 }
 
 // FullName prefixes the column name with the table name
+// It deos not include opreators (such as 'max')
 func (col ColumnElem) FullName() string {
 	return fmt.Sprintf(`"%s"."%s"`, col.table.name, col.name)
 }
