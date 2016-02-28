@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aodin/sol/dialect"
+	"github.com/aodin/sol/types"
 )
 
 // TODO Don't hardcode utc?
@@ -15,6 +16,9 @@ type uuid struct {
 	isUnique     bool
 	defaultValue string // TODO Additional defaults?
 }
+
+// uuid must implement the Type interface
+var _ types.Type = uuid{}
 
 func (t uuid) Create(d dialect.Dialect) (string, error) {
 	compiled := t.name
