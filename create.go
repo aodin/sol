@@ -12,7 +12,8 @@ import (
 
 // CreateStmt is the internal representation of an CREATE TABLE statement.
 type CreateStmt struct {
-	table *TableElem
+	table       *TableElem
+	ifNotExists bool
 }
 
 // String outputs the parameter-less CREATE TABLE statement in a neutral
@@ -20,6 +21,11 @@ type CreateStmt struct {
 func (stmt CreateStmt) String() string {
 	c, _ := stmt.Compile(&defaultDialect{}, Params())
 	return c
+}
+
+func (stmt CreateStmt) IfNotExists() CreateStmt {
+	stmt.ifNotExists = true
+	return stmt
 }
 
 // Compile outputs the CREATE TABLE statement using the given dialect and
@@ -36,9 +42,12 @@ func (stmt CreateStmt) Compile(d dialect.Dialect, p *Parameters) (string, error)
 		}
 	}
 
+	var name = fmt.Sprintf("CREATE TABLE %s", stmt.table.Name())
+	if stmt.ifNotExists {
+		name += " IF NOT EXISTS"
+	}
+
 	return fmt.Sprintf(
-		"CREATE TABLE %s (\n  %s\n);",
-		stmt.table.Name(),
-		strings.Join(compiled, ",\n  "),
+		"%s (\n  %s\n);", name, strings.Join(compiled, ",\n  "),
 	), nil
 }
