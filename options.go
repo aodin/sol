@@ -9,6 +9,19 @@ const (
 
 type options []string
 
+// Equals tests equality - order matters
+func (o options) Equals(other options) bool {
+	if len(o) != len(other) {
+		return false
+	}
+	for i, opt := range other {
+		if opt != other[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (o options) Has(option string) bool {
 	for _, opt := range o {
 		if opt == option {

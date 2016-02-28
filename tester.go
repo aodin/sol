@@ -2,11 +2,10 @@ package sol
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/aodin/sol/dialect"
 )
@@ -108,7 +107,7 @@ func (t *tester) SQL(expect string, stmt Compiles, ps ...interface{}) {
 
 	// Examine individual parameters for equality
 	for i, param := range *params {
-		if !assert.ObjectsAreEqual(ps[i], param) {
+		if !ObjectsAreEqual(ps[i], param) {
 			t.t.Errorf(
 				"%s: unequal parameters at index %d: expect %#v, got %#v",
 				caller,
@@ -118,6 +117,14 @@ func (t *tester) SQL(expect string, stmt Compiles, ps ...interface{}) {
 			)
 		}
 	}
+}
+
+func ObjectsAreEqual(a, b interface{}) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return reflect.DeepEqual(a, b)
 }
 
 func NewTester(t *testing.T, d dialect.Dialect) *tester {

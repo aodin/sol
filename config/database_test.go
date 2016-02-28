@@ -1,20 +1,21 @@
 package config
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
+import "testing"
 
 func TestDatabase(t *testing.T) {
 	conf, err := Parse("./example.db.json")
-	require.Nil(t, err, "Parsing the example DB config should not error")
+	if err != nil {
+		t.Fatalf("Parsing the example DB config should not error: %s", err)
+	}
 
 	driver, credentials := conf.Credentials()
-	assert.Equal(t, "postgres", driver)
-	assert.Equal(t,
-		`host=localhost port=5432 dbname=aspect_test user=postgres sslmode=disable`,
-		credentials,
-	)
+	if driver != "postgres" {
+		t.Errorf("Unexpected config driver %s != postgres", driver)
+	}
+	expected := `host=localhost port=5432 dbname=aspect_test user=postgres sslmode=disable`
+	if credentials != expected {
+		t.Errorf(
+			"Unexpected config credentials %s != %s", credentials, expected,
+		)
+	}
 }

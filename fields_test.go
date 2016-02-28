@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCamelToSnake(t *testing.T) {
@@ -24,7 +23,9 @@ func TestSelectFields_embeddedID(t *testing.T) {
 	var elem embeddedID
 	fields := SelectFields(&elem)
 
-	require.Equal(t, 1, len(fields))
+	if len(fields) != 1 {
+		t.Fatalf("Unexpected length of fields: %d", len(fields))
+	}
 
 	assert.Equal(t,
 		field{
@@ -45,7 +46,9 @@ func TestSelectFields_ignored(t *testing.T) {
 	var elem ignored
 	fields := SelectFields(&elem)
 
-	require.Equal(t, 1, len(fields))
+	if len(fields) != 1 {
+		t.Fatalf("Unexpected length of fields: %d", len(fields))
+	}
 
 	assert.Equal(t,
 		field{

@@ -1,13 +1,14 @@
 package sol
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
+import "testing"
 
 func TestParseTag(t *testing.T) {
 	tag, opts := parseTag(",omitempty,nullable")
-	assert.Equal(t, "", tag)
-	assert.Equal(t, options{OmitEmpty, "nullable"}, opts)
+	if tag != "" {
+		t.Errorf("Unexpected tag, it should be an empty string: %s", tag)
+	}
+	expected := options{OmitEmpty, "nullable"}
+	if !opts.Equals(expected) {
+		t.Errorf("Unexpected options: %v != %v", opts, expected)
+	}
 }

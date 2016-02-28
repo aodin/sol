@@ -56,11 +56,15 @@ var meetings = Table("meetings",
 // Connect to an PostGres instance and execute some statements.
 func TestPostGres(t *testing.T) {
 	conf, err := getConfigOrUseTravis()
-	require.Nil(t, err, "Failed to parse database config")
+	if err != nil {
+		t.Fatalf("Failed to parse database config: %s", err)
+	}
 
 	// TODO in-memory postgres only?
 	conn, err := sql.Open(conf.Credentials())
-	require.Nil(t, err, `Failed to connect to a PostGres instance`)
+	if err != nil {
+		t.Fatalf("Failed to connect to a PostGres instance: %s", err)
+	}
 	defer conn.Close()
 
 	require.Nil(t, conn.Query(things.Drop().IfExists()))
