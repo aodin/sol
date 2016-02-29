@@ -111,17 +111,25 @@ type TX interface {
 type conn struct {
 	db      *sql.DB
 	dialect dialect.Dialect
+	panicky bool
 }
 
 // Begin will start a new transaction on the current connection pool
 func (c *conn) Begin() (TX, error) {
 	tx, err := c.db.Begin()
-	return &transaction{Tx: tx, dialect: c.dialect}, err
+	if c.panicky && err != nil {
+		log.Panic(err)
+	}
+	return &transaction{Tx: tx, dialect: c.dialect, panicky: c.panicky}, err
 }
 
 // Close will make the current connection pool unusable
 func (c *conn) Close() error {
-	return c.db.Close()
+	err := c.db.Close()
+	if c.panicky && err != nil {
+		log.Panic(err)
+	}
+	return err
 }
 
 // Dialect returns the current connection pool's dialect, e.g. sqlite3
@@ -131,7 +139,11 @@ func (c *conn) Dialect() dialect.Dialect {
 
 // Query executes an Executable statement.
 func (c *conn) Query(stmt Executable, dest ...interface{}) error {
-	return perform(c.db, c.dialect, stmt, dest...)
+	err := perform(c.db, c.dialect, stmt, dest...)
+	if c.panicky && err != nil {
+		log.Panic(err)
+	}
+	return err
 }
 
 // String returns parameter-less SQL. If an error occurred during compilation,
@@ -145,14 +157,14 @@ func (c *conn) String(stmt Executable) string {
 	return compiled
 }
 
-// PanicOnError returns a panicConn, which implements the Connection
-// interface but will also panic on any error
-func (c *conn) PanicOnError() panicConn {
-	return panicConn{c}
+// PanicOnError will set the connection to panic on any error
+func (c *conn) PanicOnError() *conn {
+	c.panicky = true
+	return c
 }
 
 // Must is an alias for PanicOnError
-func (c *conn) Must() panicConn {
+func (c *conn) Must() *conn {
 	return c.PanicOnError()
 }
 
@@ -172,43 +184,11 @@ func Open(driver, credentials string) (*conn, error) {
 	return &conn{db: db, dialect: d}, nil
 }
 
-// panicConn is a connection that panics on error
-type panicConn struct {
-	*conn
-}
-
-// Begin calls the internal conn Begin(), but will panic on any error
-// and returns a panicTx instead of a transaction
-func (c panicConn) Begin() (TX, error) {
-	tx, err := c.conn.Begin()
-	if err != nil {
-		log.Panic(err)
-	}
-	return panicTx{tx.(*transaction)}, err
-}
-
-// Close calls the internal conn Close(), but will panic on any error
-func (c panicConn) Close() error {
-	err := c.conn.Close()
-	if err != nil {
-		log.Panic(err)
-	}
-	return err
-}
-
-// Query calls the internal conn Query(), but will panic on any error
-func (c panicConn) Query(stmt Executable, dest ...interface{}) error {
-	err := c.conn.Query(stmt, dest...)
-	if err != nil {
-		log.Panic(err)
-	}
-	return err
-}
-
 type transaction struct {
 	*sql.Tx
 	dialect    dialect.Dialect
 	successful bool
+	panicky    bool
 }
 
 // Begin simply returns the transaction itself
@@ -218,11 +198,16 @@ func (tx *transaction) Begin() (TX, error) {
 }
 
 // Close will commit the transaction unless it has failed
-func (tx *transaction) Close() error {
+func (tx *transaction) Close() (err error) {
 	if tx.successful {
-		return tx.Commit()
+		err = tx.Commit()
+	} else {
+		err = tx.Rollback()
 	}
-	return tx.Rollback()
+	if tx.panicky && err != nil {
+		log.Panic(err)
+	}
+	return
 }
 
 func (tx *transaction) IsSuccessful() {
@@ -231,7 +216,11 @@ func (tx *transaction) IsSuccessful() {
 
 // Query executes an Executable statement
 func (tx *transaction) Query(stmt Executable, dest ...interface{}) error {
-	return perform(tx.Tx, tx.dialect, stmt, dest...)
+	err := perform(tx.Tx, tx.dialect, stmt, dest...)
+	if tx.panicky && err != nil {
+		log.Panic(err)
+	}
+	return err
 }
 
 func (tx *transaction) String(stmt Executable) string {
@@ -240,32 +229,4 @@ func (tx *transaction) String(stmt Executable) string {
 		return err.Error()
 	}
 	return compiled
-}
-
-type panicTx struct {
-	*transaction
-}
-
-// Begin returns the panicTx itself
-// TODO Are nested transactions possible? Or should this error?
-func (tx panicTx) Begin() (TX, error) {
-	return tx, nil
-}
-
-// Close will call the internal transaction Close(). It will panic on error.
-func (tx panicTx) Close() error {
-	err := tx.transaction.Close()
-	if err != nil {
-		log.Panic(err)
-	}
-	return err
-}
-
-// Query will call the internal transaction Query(). It will panic on error.
-func (tx panicTx) Query(stmt Executable, dest ...interface{}) error {
-	err := tx.transaction.Query(stmt, dest...)
-	if err != nil {
-		log.Panic(err)
-	}
-	return err
 }
