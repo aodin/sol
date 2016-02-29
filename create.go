@@ -42,12 +42,15 @@ func (stmt CreateStmt) Compile(d dialect.Dialect, p *Parameters) (string, error)
 		}
 	}
 
-	var name = fmt.Sprintf("CREATE TABLE %s", stmt.table.Name())
+	var name = "CREATE TABLE"
 	if stmt.ifNotExists {
 		name += " IF NOT EXISTS"
 	}
 
 	return fmt.Sprintf(
-		"%s (\n  %s\n);", name, strings.Join(compiled, ",\n  "),
+		"%s %s (\n  %s\n);",
+		name,
+		stmt.table.Name(),
+		strings.Join(compiled, ",\n  "),
 	), nil
 }
