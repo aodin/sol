@@ -157,14 +157,14 @@ func (c *conn) String(stmt Executable) string {
 	return compiled
 }
 
-// PanicOnError will set the connection to panic on any error
-func (c *conn) PanicOnError() *conn {
+// PanicOnError will create a new connection that will panic on any error
+func (c conn) PanicOnError() *conn {
 	c.panicky = true
-	return c
+	return &c
 }
 
 // Must is an alias for PanicOnError
-func (c *conn) Must() *conn {
+func (c conn) Must() *conn {
 	return c.PanicOnError()
 }
 
