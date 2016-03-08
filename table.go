@@ -12,9 +12,9 @@ type TableElem struct {
 	columns Columns
 	pk      PKArray // Table's primary key
 	uniques []UniqueArray
-	fks     []FKElem     // This table's foreign keys
-	reverse []FKElem     // Tables that link to this table
-	creates []types.Type // TODO generalized Create interface?
+	fks     []FKElem // This table's foreign keys
+	reverse []FKElem // Tables that link to this table
+	creates []types.Type
 }
 
 // Column returns the column as a ColumnElem. If the column does not exist
@@ -69,6 +69,11 @@ func (table *TableElem) Insert() InsertStmt {
 // Name outputs the table name
 func (table *TableElem) Name() string {
 	return fmt.Sprintf(`"%s"`, table.name)
+}
+
+// PrimaryKey returns the primary key array
+func (table TableElem) PrimaryKey() PKArray {
+	return table.pk
 }
 
 // Select returns a SelectStmt for the entire table

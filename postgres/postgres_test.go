@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/aodin/config"
 	sql "github.com/aodin/sol"
-	"github.com/aodin/sol/config"
 	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
 )
@@ -26,7 +26,7 @@ var travisCI = config.Database{
 // getConfigOrUseTravis returns the parsed db.json if it exists or the
 // travisCI config if it does not
 func getConfigOrUseTravis() (config.Database, error) {
-	conf, err := config.Parse("./db.json")
+	conf, err := config.ParseDatabasePath("./db.json")
 	if os.IsNotExist(err) {
 		return travisCI, nil
 	}

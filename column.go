@@ -19,6 +19,7 @@ type Columnar interface {
 	IsInvalid() bool
 	Name() string
 	Table() *TableElem
+	Type() types.Type
 }
 
 type ColumnElem struct {
@@ -122,6 +123,11 @@ func (col ColumnElem) Modify(table *TableElem) error {
 // Table returns the column's TableElem
 func (col ColumnElem) Table() *TableElem {
 	return col.table
+}
+
+// Type returns the column's data type
+func (col ColumnElem) Type() types.Type {
+	return col.datatype
 }
 
 // Conditionals

@@ -19,7 +19,7 @@ var users = Table("users",
 
 var contacts = Table("contacts",
 	Column("id", types.Integer()),
-	Column("user_id", types.Integer()), // TODO FK
+	ForeignKey("user_id", users),
 	Column("key", types.Varchar()),
 	Column("value", types.Varchar()),
 	PrimaryKey("id"),
@@ -34,7 +34,7 @@ type user struct {
 }
 
 type contact struct {
-	Id         int64 `db:"id"`
-	UserId     int64 `db:"user_id"`
+	ID         int64 `db:"id"`
+	UserID     int64 `db:"user_id"`
 	Key, Value string
 }
