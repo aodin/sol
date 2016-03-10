@@ -9,7 +9,6 @@ import (
 )
 
 type Columnar interface {
-	Comparable
 	Compiles
 	Selectable
 	AddOperator(string) ColumnElem // TODO or Columnar?

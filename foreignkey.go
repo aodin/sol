@@ -121,26 +121,33 @@ func (fk FKElem) OnUpdate(b fkAction) FKElem {
 // ForeignKey creates a FKElem from the given name and column/table.
 // If given a column, it must already have its table assigned.
 func ForeignKey(name string, fk Selectable) FKElem {
-	// the fk must be a column or table
 	var col Columnar
-	switch f := fk.(type) {
-	case *TableElem: // TODO tabular type for postgres tables?
-		// The table must have only one primary key
-		if len(f.pk) != 1 {
-			log.Panic(
-				"sol: inline foreign key tables must have one and only one primary key column",
-			)
-		}
-		col = f.C(f.pk[0])
-	case Columnar:
-		if f.Table() == nil {
+	if fk == nil {
+		log.Panic("sol: inline foreign key was given a nil Selectable")
+	}
+	columns := fk.Columns()
+	if len(columns) == 0 {
+		log.Panic(
+			"sol: inline foreign key Selectable must have at least one column",
+		)
+	} else if len(columns) == 1 {
+		col = columns[0]
+		if col.Table() == nil {
 			log.Panic(
 				"sol: inline foreign key columns must already have their table assigned before creation",
 			)
 		}
-		col = f
-	default:
-		log.Println("sol: unsupported type for inline foreign key")
+	} else {
+		// Simply use the table of the first column
+		// TODO This is a strange decision that will error silently
+		table := columns[0].Table()
+		pk := table.PrimaryKey()
+		if len(pk) != 1 {
+			log.Panic(
+				"sol: inline foreign key must have one and only one primary key column",
+			)
+		}
+		col = table.C(pk[0])
 	}
 
 	return FKElem{

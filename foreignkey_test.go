@@ -18,4 +18,13 @@ func TestForeignKey(t *testing.T) {
 );`,
 		contacts.Create(),
 	)
+
+	expect.SQL(
+		`CREATE TABLE "messages" (
+  "id" INTEGER,
+  "user_id" INTEGER REFERENCES users("id"),
+  "text" TEXT
+);`,
+		messages.Create(),
+	)
 }

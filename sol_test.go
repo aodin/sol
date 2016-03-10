@@ -26,6 +26,12 @@ var contacts = Table("contacts",
 	Unique("user_id", "key"),
 )
 
+var messages = Table("messages",
+	Column("id", types.Integer()),
+	ForeignKey("user_id", users.C("id")),
+	Column("text", types.Text()),
+)
+
 type user struct {
 	ID        uint64 `db:",omitempty"`
 	Email     string
