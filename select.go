@@ -44,7 +44,7 @@ func CompileColumns(columns []Columnar) []string {
 func (stmt SelectStmt) compileTables() []string {
 	names := make([]string, len(stmt.tables))
 	for i, table := range stmt.tables {
-		names[i] = table.Name()
+		names[i] = fmt.Sprintf(`"%s"`, table.Name())
 	}
 	return names
 }

@@ -66,9 +66,9 @@ func (table *TableElem) Insert() InsertStmt {
 	return Insert(table)
 }
 
-// Name outputs the table name
+// Name returns the table name
 func (table *TableElem) Name() string {
-	return fmt.Sprintf(`"%s"`, table.name)
+	return fmt.Sprintf(`%s`, table.name)
 }
 
 // PrimaryKey returns the primary key array

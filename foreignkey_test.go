@@ -10,7 +10,7 @@ func TestForeignKey(t *testing.T) {
 	expect.SQL(
 		`CREATE TABLE "contacts" (
   "id" INTEGER,
-  "user_id" INTEGER REFERENCES "users"("id"),
+  "user_id" INTEGER REFERENCES users("id"),
   "key" VARCHAR,
   "value" VARCHAR,
   PRIMARY KEY ("id"),
