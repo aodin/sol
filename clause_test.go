@@ -1,7 +1,5 @@
 package sol
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestClause(t *testing.T) {}

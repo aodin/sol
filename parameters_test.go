@@ -1,13 +1,12 @@
 package sol
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
+import "testing"
 
 func TestParameters_Add(t *testing.T) {
 	ps := Params()
 	ps.Add(1)
-	assert.Equal(t, 1, ps.Len())
+
+	if len(*ps) != 1 {
+		t.Fatalf("Unexpected length of parameters: %s != 1", len(*ps))
+	}
 }

@@ -7,12 +7,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCamelToSnake(t *testing.T) {
-	assert.Equal(t, "snake_case", camelToSnake("SnakeCase"))
-	assert.Equal(t, "user_id", camelToSnake("UserID"))
-	assert.Equal(t, "uuid", camelToSnake("UUID"))
+// TODO Unicode test cases?
+var caseTests = []struct {
+	In, Out string
+}{
+	{In: "SnakeCase", Out: "snake_case"},
+	{In: "UserID", Out: "user_id"},
+	{In: "UUID", Out: "uuid"},
+}
 
-	// TODO Unicode test cases?
+func TestCamelToSnake(t *testing.T) {
+	for i, test := range caseTests {
+		out := camelToSnake(test.In)
+		if out != test.Out {
+			t.Errorf(
+				"Unexpected camel to snake case conversion %d - %s: %s != %s",
+				i, test.In, out, test.Out,
+			)
+		}
+	}
 }
 
 type embeddedID struct {

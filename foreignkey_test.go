@@ -1,8 +1,6 @@
 package sol
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestForeignKey(t *testing.T) {
 	expect := NewTester(t, &defaultDialect{})

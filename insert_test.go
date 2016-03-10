@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestInsert(t *testing.T) {
@@ -31,16 +29,31 @@ func TestInsert(t *testing.T) {
 	)
 }
 
-func TestIsEmptyValue(t *testing.T) {
-	assert.True(t, isEmptyValue(reflect.ValueOf(0)))
-	assert.True(t, isEmptyValue(reflect.ValueOf("")))
-	assert.True(t, isEmptyValue(reflect.ValueOf(false)))
-	assert.True(t, isEmptyValue(reflect.ValueOf(0.0)))
-	assert.True(t, isEmptyValue(reflect.ValueOf(time.Time{})))
+var emptyValues = []bool{
+	isEmptyValue(reflect.ValueOf(0)),
+	isEmptyValue(reflect.ValueOf("")),
+	isEmptyValue(reflect.ValueOf(false)),
+	isEmptyValue(reflect.ValueOf(0.0)),
+	isEmptyValue(reflect.ValueOf(time.Time{})),
+}
 
-	assert.False(t, isEmptyValue(reflect.ValueOf(1)))
-	assert.False(t, isEmptyValue(reflect.ValueOf("h")))
-	assert.False(t, isEmptyValue(reflect.ValueOf(true)))
-	assert.False(t, isEmptyValue(reflect.ValueOf(0.1)))
-	assert.False(t, isEmptyValue(reflect.ValueOf(time.Now())))
+var nonEmptyValues = []bool{
+	isEmptyValue(reflect.ValueOf(1)),
+	isEmptyValue(reflect.ValueOf("h")),
+	isEmptyValue(reflect.ValueOf(true)),
+	isEmptyValue(reflect.ValueOf(0.1)),
+	isEmptyValue(reflect.ValueOf(time.Now())),
+}
+
+func TestIsEmptyValue(t *testing.T) {
+	for i, isEmpty := range emptyValues {
+		if !isEmpty {
+			t.Errorf("Value %d should be empty", i)
+		}
+	}
+	for i, isNotEmpty := range nonEmptyValues {
+		if isNotEmpty {
+			t.Errorf("Value %d should not be empty", i)
+		}
+	}
 }

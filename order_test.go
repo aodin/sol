@@ -1,10 +1,6 @@
 package sol
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
+import "testing"
 
 func TestOrder(t *testing.T) {
 	expect := NewTester(t, &defaultDialect{})
@@ -26,5 +22,11 @@ func TestOrder(t *testing.T) {
 	expect.SQL(`"users"."id" NULLS LAST`, ord.Asc().NullsLast())
 
 	// Calling Orderable on an OrderableColumn should return a copy of itself
-	assert.Equal(t, ord.inner.Name(), ord.Orderable().inner.Name())
+	if ord.inner.Name() != ord.Orderable().inner.Name() {
+		t.Errorf(
+			"Unexpected name of Orderable inner field: %s != s",
+			ord.Orderable().inner.Name(),
+			ord.inner.Name(),
+		)
+	}
 }

@@ -1,8 +1,6 @@
 package sol
 
-import (
-	"testing"
-)
+import "testing"
 
 // Valid schemas are declared in sol_test
 
