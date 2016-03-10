@@ -1,19 +1,33 @@
 package sol
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
+import "testing"
 
 // All schemas are declared in sol_test.go
 
 func TestTable(t *testing.T) {
-	assert.Equal(t, "users", users.name)
+	if users.name != "users" {
+		t.Errorf("Unexpected table name: %s != users", users.name)
+	}
 
 	// Confirm the fields created by Modifiers
-	assert.Equal(t, PKArray{"id"}, users.pk)
-	assert.Equal(t, []UniqueArray{{"email"}}, users.uniques)
+	if len(users.pk) != 1 {
+		t.Fatalf("Unexpected length of primary keys: %d != 1", len(users.pk))
+	}
+	if users.pk[0] != "id" {
+		t.Errorf("Unexpected primary key: %s != id", users.pk[0])
+	}
+	if len(users.uniques) != 1 {
+		t.Fatalf("Unexpected length of uniques: %d != 1", len(users.uniques))
+	}
+	if len(users.uniques[0]) != 1 {
+		t.Fatalf(
+			"Unexpected length of unique array: %d != 1",
+			len(users.uniques),
+		)
+	}
+	if users.uniques[0][0] != "email" {
+		t.Errorf("Unexpected unique: %s != email", users.uniques[0][0])
+	}
 }
 
 func TestTable_Select(t *testing.T) {

@@ -134,7 +134,7 @@ func ForeignKey(name string, fk Selectable) FKElem {
 		col = columns[0]
 		if col.Table() == nil {
 			log.Panic(
-				"sol: inline foreign key columns must already have their table assigned before creation",
+				"sol: inline foreign key columns must have their table assigned before creation",
 			)
 		}
 	} else {
@@ -144,7 +144,7 @@ func ForeignKey(name string, fk Selectable) FKElem {
 		pk := table.PrimaryKey()
 		if len(pk) != 1 {
 			log.Panic(
-				"sol: inline foreign key must have one and only one primary key column",
+				"sol: inline foreign key tables must have one and only one primary key column",
 			)
 		}
 		col = table.C(pk[0])
