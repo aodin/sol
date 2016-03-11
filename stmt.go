@@ -33,6 +33,17 @@ type ConditionalStmt struct {
 	where Clause
 }
 
+// AddConditional adds a conditional clause to the statement.
+// If a conditional clause already exists, it will be logically
+// joined to the given clause with AND.
+func (stmt *ConditionalStmt) AddConditional(where Clause) {
+	if stmt.where == nil {
+		stmt.where = where
+	} else {
+		stmt.where = AllOf(stmt.where, where)
+	}
+}
+
 // Conditional returns the statement's conditional Clause
 func (stmt ConditionalStmt) Conditional() Clause {
 	return stmt.where
