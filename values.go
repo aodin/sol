@@ -48,6 +48,19 @@ func (v Values) Keys() []string {
 	return keys
 }
 
+// Merge combines the Values{} types, with precedence to the Values given as
+// a parameter
+func (v Values) Merge(other Values) Values {
+	merged := Values{}
+	for key, value := range v {
+		merged[key] = value
+	}
+	for key, value := range other {
+		merged[key] = value
+	}
+	return merged
+}
+
 // MarshalJSON converts Values to JSON after converting all byte slices to
 // a string type.
 // By default, byte slices are JSON unmarshaled as base64.
