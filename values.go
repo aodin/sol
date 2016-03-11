@@ -2,6 +2,7 @@ package sol
 
 import (
 	"encoding/json"
+	"reflect"
 	"sort"
 )
 
@@ -18,6 +19,21 @@ func (v Values) Diff(other Values) Values {
 		}
 	}
 	return diff
+}
+
+// Exclude removes the given keys and returns the remaining Values
+func (v Values) Exclude(keys ...string) Values {
+	safe := Values{}
+ValueLoop:
+	for key, value := range v {
+		for _, k := range keys {
+			if k == key {
+				continue ValueLoop
+			}
+		}
+		safe[key] = value
+	}
+	return safe
 }
 
 // Keys returns the keys of the Values map in alphabetical order.
@@ -47,4 +63,29 @@ func (v Values) MarshalJSON() ([]byte, error) {
 
 	// Convert to prevent recursive marshaling
 	return json.Marshal(map[string]interface{}(v))
+}
+
+// Values converts the given object to a Values{} type
+func ValuesOf(obj interface{}) Values {
+	values := Values{}
+
+	elem := reflect.Indirect(reflect.ValueOf(obj))
+	switch elem.Kind() {
+	case reflect.Struct:
+		fields := SelectFieldsFromElem(elem.Type())
+		// TODO how to convert to db column name? Show Values even care?
+		for _, field := range fields {
+			var fieldElem reflect.Value = elem
+			for _, name := range field.names {
+				fieldElem = fieldElem.FieldByName(name)
+			}
+			// TODO Skip empty if omit empty...?
+			values[field.column] = fieldElem.Interface()
+		}
+	case reflect.Map:
+		// TODO Convert to Values - generalized map iteration?
+	default:
+		// TODO Return an error, panic, or silent?
+	}
+	return values
 }

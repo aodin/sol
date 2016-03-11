@@ -87,7 +87,7 @@ func recurse(names []string, elem reflect.Type) (matches fields) {
 		// which does not implement the scanner interface
 		if f.Type.Kind() == reflect.Struct && !reflect.PtrTo(f.Type).Implements(scannerType) {
 			switch f.Type.String() { // TODO switch on the actual type
-			case "time.Time": // TODO confirm this is acutally time.Time
+			case "time.Time": // TODO confirm this is actually time.Time
 			default:
 				matches = append(matches, recurse(append(names, f.Name), f.Type)...)
 				continue
