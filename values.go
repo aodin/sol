@@ -1,9 +1,8 @@
 package sol
 
 import (
+	"encoding/json"
 	"sort"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // Values is a map of column names to parameters.
@@ -14,7 +13,7 @@ type Values map[string]interface{}
 func (v Values) Diff(other Values) Values {
 	diff := Values{}
 	for key, value := range v {
-		if !assert.ObjectsAreEqual(value, other[key]) {
+		if !ObjectsAreEqual(value, other[key]) {
 			diff[key] = value
 		}
 	}
@@ -31,4 +30,21 @@ func (v Values) Keys() []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// MarshalJSON converts Values to JSON after converting all byte slices to
+// a string type.
+// By default, byte slices are JSON unmarshaled as base64.
+// This is an issue since the postgres driver will scan string/varchar
+// types as byte slices. Since Values{} should rarely be used within
+// Go code, we're only modifying the JSON marshaler.
+func (v Values) MarshalJSON() ([]byte, error) {
+	for key, value := range v {
+		if val, ok := value.([]byte); ok {
+			v[key] = string(val)
+		}
+	}
+
+	// Convert to prevent recursive marshaling
+	return json.Marshal(map[string]interface{}(v))
 }
