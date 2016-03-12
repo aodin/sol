@@ -18,6 +18,7 @@ type SelectStmt struct {
 	ConditionalStmt
 	tables     []*TableElem
 	columns    []Columnar
+	joins      []JoinClause
 	groupBy    []Columnar
 	having     Clause
 	orderBy    []OrderedColumn
@@ -75,6 +76,16 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		strings.Join(CompileColumns(stmt.columns), ", "),
 		strings.Join(stmt.compileTables(), ", "),
 	)
+
+	if len(stmt.joins) > 0 {
+		for _, j := range stmt.joins {
+			jc, err := j.Compile(d, ps)
+			if err != nil {
+				return "", err
+			}
+			compiled += jc
+		}
+	}
 
 	if stmt.where != nil {
 		conditional, err := stmt.where.Compile(d, ps)
@@ -142,6 +153,47 @@ func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
 	stmt.isDistinct = true
 	stmt.distincts = columns
 	return stmt
+}
+
+func (stmt SelectStmt) join(table *TableElem, method string, cs ...Clause) SelectStmt {
+	stmt.joins = append(
+		stmt.joins,
+		JoinClause{
+			method:      method,
+			table:       table,
+			ArrayClause: ArrayClause{clauses: cs, sep: " AND "},
+		},
+	)
+	return stmt
+}
+
+// CrossJoin adds a CROSS JOIN ... clause to the SELECT statement.
+func (stmt SelectStmt) CrossJoin(table *TableElem) SelectStmt {
+	return stmt.join(table, "CROSS JOIN")
+}
+
+// InnerJoin adds an INNER JOIN ... ON ... clause to the SELECT statement.
+// If no clauses are given, it will assume the clause is NATURAL.
+func (stmt SelectStmt) InnerJoin(table *TableElem, cs ...Clause) SelectStmt {
+	return stmt.join(table, "INNER JOIN", cs...)
+}
+
+// LeftOuterJoin adds a LEFT OUTER JOIN ... ON ... clause to the SELECT
+// statement. If no clauses are given, it will assume the clause is NATURAL.
+func (stmt SelectStmt) LeftOuterJoin(table *TableElem, cs ...Clause) SelectStmt {
+	return stmt.join(table, "LEFT OUTER JOIN", cs...)
+}
+
+// RightOuterJoin adds a RIGHT OUTER JOIN ... ON ... clause to the SELECT
+// statement. If no clauses are given, it will assume the clause is NATURAL.
+func (stmt SelectStmt) RightOuterJoin(table *TableElem, cs ...Clause) SelectStmt {
+	return stmt.join(table, "RIGHT OUTER JOIN", cs...)
+}
+
+// FullOuterJoin adds a FULL OUTER JOIN ... ON ... clause to the SELECT
+// statement. If no clauses are given, it will assume the clause is NATURAL.
+func (stmt SelectStmt) FullOuterJoin(table *TableElem, cs ...Clause) SelectStmt {
+	return stmt.join(table, "FULL OUTER JOIN", cs...)
 }
 
 // Where adds a conditional clause to the SELECT statement. Only one WHERE

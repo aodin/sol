@@ -141,9 +141,14 @@ const (
 )
 
 func (col ColumnElem) operator(op string, param interface{}) BinaryClause {
+	clause, ok := param.(Clause)
+	if !ok {
+		// The param does not implement Clause - parameterize!
+		clause = &Parameter{param}
+	}
 	return BinaryClause{
 		Pre:  col,
-		Post: &Parameter{param},
+		Post: clause,
 		Sep:  fmt.Sprintf(" %s ", op),
 	}
 }

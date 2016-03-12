@@ -18,7 +18,7 @@ func TestValues(t *testing.T) {
 
 func TestValues_Exclude(t *testing.T) {
 	unsafe := Values{"a": 1, "b": 1}
-	safe := unsafe.Exclude("b", "c")
+	safe := unsafe.Exclude("a", "c")
 	if len(safe) != 1 {
 		t.Errorf("Unexpected length of safe Values: %d != 1", len(safe))
 	}
@@ -26,8 +26,8 @@ func TestValues_Exclude(t *testing.T) {
 	if len(keys) != 1 {
 		t.Errorf("Unexpected length of safe keys: %d != 1", len(keys))
 	}
-	if keys[0] != "a" {
-		t.Errorf("Unexpected safe key: %s != a", keys[0])
+	if keys[0] != "b" {
+		t.Errorf("Unexpected safe key: %s != b", keys[0])
 	}
 }
 
