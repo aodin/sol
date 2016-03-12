@@ -10,7 +10,7 @@ import (
 type JoinClause struct {
 	ArrayClause
 	method string
-	table  *TableElem
+	table  Tabular // interface, since there are dialect-specific tables
 }
 
 // String returns a default string representation of the JoinClause

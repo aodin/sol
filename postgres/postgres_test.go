@@ -46,12 +46,25 @@ type thing struct {
 	CreatedAt time.Time `db:",omitempty"`
 }
 
+var itemsA = Table("items_a",
+	sql.Column("id", Serial()),
+	sql.Column("name", types.Varchar()),
+)
+
+var itemsB = Table("items_b",
+	sql.Column("id", Serial()),
+	sql.Column("name", types.Varchar()),
+)
+
+type item struct {
+	ID   uint64 `db:",omitempty"`
+	Name string
+}
+
 var meetings = Table("meetings",
 	sql.Column("uuid", UUID().NotNull().Unique().Default(GenerateV4)),
 	sql.Column("time", TimestampRange()),
 )
-
-// TODO custom type for TimestampRange
 
 // Connect to an PostGres instance and execute some statements.
 func TestPostGres(t *testing.T) {
@@ -114,6 +127,61 @@ func TestPostGres(t *testing.T) {
 	var one []thing
 	conn.Query(things.Select(), &one)
 	assert.Equal(t, 1, len(one))
+}
+
+// TestPostGres_Select tests a variety of SelectStmt features against the
+// postgres database
+func TestPostGres_Select(t *testing.T) {
+	conf, err := getConfigOrUseTravis()
+	require.Nil(t, err, "Failed to parse database config")
+
+	conn, err := sql.Open(conf.Credentials())
+	require.Nil(t, err, `Failed to connect to a PostGres instance`)
+	defer conn.Close()
+
+	tx, err := conn.Begin()
+	require.Nil(t, err, "Creating a new transaction should not error")
+	defer tx.Rollback()
+
+	// TODO temp tables
+	require.Nil(t,
+		tx.Query(itemsA.Create().IfNotExists()),
+		`Create table "%s" should not error`, itemsA.Name(),
+	)
+
+	require.Nil(t,
+		tx.Query(itemsB.Create().IfNotExists()),
+		`Create table "%s" should not error`, itemsB.Name(),
+	)
+
+	a := item{Name: "A"}
+	require.Nil(t,
+		tx.Query(itemsA.Insert().Values(a).Returning(), &a),
+		`Insert into table "%s" within a transaction should not error`,
+		itemsA.Name(),
+	)
+	if a.ID == 0 {
+		t.Fatal("Failed to set primary key of item during INSERT")
+	}
+
+	require.Nil(t,
+		tx.Query(itemsB.Insert().Values([]item{{Name: "A"}, {Name: "B"}})),
+		`Insert into table "%s" within a transaction should not error`,
+		itemsB.Name(),
+	)
+
+	stmt := itemsB.Select().InnerJoin(
+		itemsA,
+		itemsB.C("name").Equals(itemsA.C("name")),
+	).Where(
+		itemsA.C("id").Equals(a.ID),
+	)
+
+	var selected item
+	tx.Query(stmt, &selected)
+	if selected.ID == 0 {
+		t.Fatal("Failed to SELECT item through joined table")
+	}
 }
 
 // TestPostGres_Transaction tests the transactional operations of PostGres,

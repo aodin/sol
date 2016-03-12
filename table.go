@@ -7,8 +7,13 @@ import (
 	"github.com/aodin/sol/types"
 )
 
+type Tabular interface {
+	Name() string
+}
+
 type TableElem struct {
 	name    string
+	alias   string
 	columns Columns
 	pk      PKArray // Table's primary key
 	uniques []UniqueArray
@@ -66,7 +71,7 @@ func (table *TableElem) Insert() InsertStmt {
 	return Insert(table)
 }
 
-// Name returns the table name
+// Name returns the table name without escaping
 func (table *TableElem) Name() string {
 	return fmt.Sprintf(`%s`, table.name)
 }
