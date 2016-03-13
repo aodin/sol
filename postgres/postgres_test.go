@@ -61,6 +61,10 @@ type item struct {
 	Name string
 }
 
+func (i item) Exists() bool {
+	return i.ID != 0
+}
+
 var meetings = Table("meetings",
 	sql.Column("uuid", UUID().NotNull().Unique().Default(GenerateV4)),
 	sql.Column("time", TimestampRange()),

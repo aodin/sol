@@ -192,7 +192,8 @@ type transaction struct {
 }
 
 // Begin simply returns the transaction itself
-// TODO Are nested transactions possible? Or should this error?
+// TODO database/sql does not support nested transactions, more detail
+// here: https://github.com/golang/go/issues/7898
 func (tx *transaction) Begin() (TX, error) {
 	return tx, nil
 }
