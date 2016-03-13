@@ -145,12 +145,12 @@ func TestPostGres_Select(t *testing.T) {
 
 	// TODO temp tables
 	require.Nil(t,
-		tx.Query(itemsA.Create().IfNotExists()),
+		tx.Query(itemsA.Create().Temporary().IfNotExists()),
 		`Create table "%s" should not error`, itemsA.Name(),
 	)
 
 	require.Nil(t,
-		tx.Query(itemsB.Create().IfNotExists()),
+		tx.Query(itemsB.Create().Temporary().IfNotExists()),
 		`Create table "%s" should not error`, itemsB.Name(),
 	)
 

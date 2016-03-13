@@ -14,6 +14,7 @@ import (
 type CreateStmt struct {
 	table       *TableElem
 	ifNotExists bool
+	isTemporary bool
 }
 
 // String outputs the parameter-less CREATE TABLE statement in a neutral
@@ -25,6 +26,11 @@ func (stmt CreateStmt) String() string {
 
 func (stmt CreateStmt) IfNotExists() CreateStmt {
 	stmt.ifNotExists = true
+	return stmt
+}
+
+func (stmt CreateStmt) Temporary() CreateStmt {
+	stmt.isTemporary = true
 	return stmt
 }
 
@@ -42,7 +48,12 @@ func (stmt CreateStmt) Compile(d dialect.Dialect, p *Parameters) (string, error)
 		}
 	}
 
-	var name = "CREATE TABLE"
+	var name string
+	if stmt.isTemporary {
+		name = "CREATE TEMPORARY TABLE"
+	} else {
+		name = "CREATE TABLE"
+	}
 	if stmt.ifNotExists {
 		name += " IF NOT EXISTS"
 	}
