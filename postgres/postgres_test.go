@@ -109,9 +109,7 @@ func TestPostGres(t *testing.T) {
 	tx, err := conn.Begin()
 	require.Nil(t, err, "Creating a new transaction should not error")
 
-	beta := thing{
-		Name: "Beta",
-	}
+	beta := thing{Name: "Beta"}
 
 	require.Nil(t,
 		tx.Query(things.Insert().Values(beta)),
@@ -131,6 +129,64 @@ func TestPostGres(t *testing.T) {
 	var one []thing
 	conn.Query(things.Select(), &one)
 	assert.Equal(t, 1, len(one))
+}
+
+func TestPostGres_CRUD(t *testing.T) {
+	conf, err := getConfigOrUseTravis()
+	require.Nil(t, err, "Failed to parse database config")
+
+	conn, err := sql.Open(conf.Credentials())
+	require.Nil(t, err, `Failed to connect to a PostGres instance`)
+	defer conn.Close()
+
+	tx, err := conn.Begin()
+	require.Nil(t, err, "Creating a new transaction should not error")
+	defer tx.Rollback()
+
+	if err = tx.Query(itemsA.Create().Temporary().IfNotExists()); err != nil {
+		t.Fatalf("Create table %s should not error: %s", itemsA.Name(), err)
+	}
+
+	google := item{Name: "Google"}
+
+	if err = tx.Query(
+		itemsA.Insert().Values(google).Returning(),
+		&google,
+	); err != nil {
+		t.Fatalf("INSERT should not fail %s", err)
+	}
+
+	// Update
+	tx.Query(
+		itemsA.Update().Values(
+			sql.Values{"name": "Alphabet"},
+		).Where(itemsA.C("id").Equals(google.ID)),
+	)
+
+	var alpha item
+	if err = tx.Query(
+		itemsA.Select().Where(itemsA.C("id").Equals(google.ID)),
+		&alpha,
+	); err != nil {
+		t.Fatalf("Select should not fail: %s", err)
+	}
+
+	if google.ID != alpha.ID {
+		t.Errorf(
+			"Unexpected IDs of google and alphabet: %d != %d",
+			google.ID, alpha.ID,
+		)
+	}
+	if alpha.Name != "Alphabet" {
+		t.Errorf("Unexpected name for alpha: %s", alpha.Name)
+	}
+
+	// Delete
+	if err = tx.Query(
+		itemsA.Delete().Where(itemsA.C("name").Equals("Alphabet")),
+	); err != nil {
+		t.Fatalf("Delete should not fail: %s", err)
+	}
 }
 
 // TestPostGres_Select tests a variety of SelectStmt features against the
