@@ -52,6 +52,7 @@ func (v Values) Keys() []string {
 // a parameter
 func (v Values) Merge(other Values) Values {
 	merged := Values{}
+	// Copy the original map
 	for key, value := range v {
 		merged[key] = value
 	}

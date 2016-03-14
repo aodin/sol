@@ -27,7 +27,7 @@ type ColumnElem struct {
 func (col ColumnElem) operator(op string, param interface{}) sol.BinaryClause {
 	return sol.BinaryClause{
 		Pre:  col,
-		Post: &sol.Parameter{param},
+		Post: &sol.Parameter{Value: param},
 		Sep:  fmt.Sprintf(" %s ", op),
 	}
 }

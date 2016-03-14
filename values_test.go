@@ -31,6 +31,23 @@ func TestValues_Exclude(t *testing.T) {
 	}
 }
 
+func TestValues_Merge(t *testing.T) {
+	a := Values{"a": 1, "b": 2}
+	b := Values{"b": 3, "c": 4}
+	c := a.Merge(b)
+
+	if len(c) != 3 {
+		t.Errorf("Unexpected length of c Values: %d != 3", len(c))
+	}
+	v, ok := c["c"].(int)
+	if !ok {
+		t.Fatal("Failed to convert the 'c' value to int")
+	}
+	if v != 4 {
+		t.Errorf("Unexpected value of 'c': %d != 4", v)
+	}
+}
+
 func TestValuesOf(t *testing.T) {
 	// u := user{Email: "a@example.com", Name: "A"}
 	// t.Error(ValuesOf(u))

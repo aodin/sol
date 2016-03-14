@@ -24,7 +24,7 @@ func TestOrder(t *testing.T) {
 	// Calling Orderable on an OrderableColumn should return a copy of itself
 	if ord.inner.Name() != ord.Orderable().inner.Name() {
 		t.Errorf(
-			"Unexpected name of Orderable inner field: %s != s",
+			"Unexpected name of Orderable inner field: %s != %s",
 			ord.Orderable().inner.Name(),
 			ord.inner.Name(),
 		)

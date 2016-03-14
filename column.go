@@ -144,7 +144,7 @@ func (col ColumnElem) operator(op string, param interface{}) BinaryClause {
 	clause, ok := param.(Clause)
 	if !ok {
 		// The param does not implement Clause - parameterize!
-		clause = &Parameter{param}
+		clause = &Parameter{Value: param}
 	}
 	return BinaryClause{
 		Pre:  col,
