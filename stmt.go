@@ -36,6 +36,7 @@ type ConditionalStmt struct {
 // AddConditional adds a conditional clause to the statement.
 // If a conditional clause already exists, it will be logically
 // joined to the given clause with AND.
+// TODO Additional logical operators?
 func (stmt *ConditionalStmt) AddConditional(where Clause) {
 	if stmt.where == nil {
 		stmt.where = where

@@ -93,6 +93,12 @@ func (table *TableElem) Select(dest ...interface{}) (stmt SelectStmt) {
 	return SelectTable(table, dest...)
 }
 
+// Update is an alias for Update(table). It will create an UPDATE statement
+// for the entire table. Specify the update values with the method Values().
+func (table *TableElem) Update() UpdateStmt {
+	return Update(table)
+}
+
 // Table creates a new table element. It will panic on any errors.
 func Table(name string, modifiers ...Modifier) *TableElem {
 	if err := isValidTableName(name); err != nil {
