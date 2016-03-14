@@ -1,6 +1,8 @@
 Sol [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/aodin/sol) [![Build Status](https://travis-ci.org/aodin/sol.svg?branch=master)](https://travis-ci.org/aodin/sol) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aodin/sol)
 ======
 
+[![Join the chat at https://gitter.im/aodin/sol](https://badges.gitter.im/aodin/sol.svg)](https://gitter.im/aodin/sol?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A relational database toolkit for Go:
 
 * Build complete database schemas
