@@ -51,6 +51,13 @@ func (table *TableElem) Create() CreateStmt {
 	return CreateStmt{table: table}
 }
 
+// Delete is an alias for Delete(table). It will generate a DELETE statement
+// for the entire table. Conditionals joined with AND can be passed as
+// parameters or later added with the Where() method
+func (table *TableElem) Delete(clauses ...Clause) DeleteStmt {
+	return Delete(table, clauses...)
+}
+
 // Create generates the table's DROP statement.
 func (table *TableElem) Drop() DropStmt {
 	return DropStmt{table: table}
