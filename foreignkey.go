@@ -120,7 +120,7 @@ func (fk FKElem) OnUpdate(b fkAction) FKElem {
 
 // ForeignKey creates a FKElem from the given name and column/table.
 // If given a column, it must already have its table assigned.
-func ForeignKey(name string, fk Selectable) FKElem {
+func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 	var col Columnar
 	if fk == nil {
 		log.Panic("sol: inline foreign key was given a nil Selectable")
@@ -150,10 +150,16 @@ func ForeignKey(name string, fk Selectable) FKElem {
 		col = table.C(pk[0])
 	}
 
+	// Allow an overriding datatype
+	datatype := col.Type()
+	if len(datatypes) > 0 {
+		datatype = datatypes[0]
+	}
+
 	return FKElem{
 		name:       name,
 		col:        col,
-		datatype:   col.Type(),
+		datatype:   datatype,
 		references: col.Table(),
 	}
 }

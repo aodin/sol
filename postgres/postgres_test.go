@@ -54,6 +54,12 @@ var itemsA = Table("items_a",
 var itemsB = Table("items_b",
 	sql.Column("id", Serial()),
 	sql.Column("name", types.Varchar()),
+	sql.PrimaryKey("id"),
+)
+
+var itemsFK = Table("items_fk",
+	sql.ForeignKey("id", itemsB, types.Integer().NotNull()),
+	sql.Column("name", types.Varchar()),
 )
 
 type item struct {
@@ -129,6 +135,18 @@ func TestPostGres(t *testing.T) {
 	var one []thing
 	conn.Query(things.Select(), &one)
 	assert.Equal(t, 1, len(one))
+}
+
+func TestPostGres_Create(t *testing.T) {
+	expect := sql.NewTester(t, &PostGres{})
+
+	expect.SQL(
+		`CREATE TABLE "items_fk" (
+  "id" INTEGER NOT NULL REFERENCES items_b("id"),
+  "name" VARCHAR
+);`,
+		itemsFK.Create(),
+	)
 }
 
 func TestPostGres_CRUD(t *testing.T) {
