@@ -145,7 +145,7 @@ func (c *DBConn) Dialect() dialect.Dialect {
 // Query executes an Executable statement.
 func (c *DBConn) Query(stmt Executable, dest ...interface{}) error {
 	err := perform(c.db, c.dialect, stmt, dest...)
-	if c.panicky && err != nil {
+	if c.panicky && err != nil && err != sql.ErrNoRows {
 		log.Panic(err)
 	}
 	return err
@@ -223,7 +223,7 @@ func (tx *transaction) IsSuccessful() {
 // Query executes an Executable statement
 func (tx *transaction) Query(stmt Executable, dest ...interface{}) error {
 	err := perform(tx.Tx, tx.dialect, stmt, dest...)
-	if tx.panicky && err != nil {
+	if tx.panicky && err != nil && err != sql.ErrNoRows {
 		log.Panic(err)
 	}
 	return err

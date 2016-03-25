@@ -82,6 +82,24 @@ func TestSqlite3(t *testing.T) {
 	})
 }
 
+// TestSqlite3_PanicOnError tests a panicky connection with sqlite3
+func TestSqlite3_PanicOnError(t *testing.T) {
+	dbconn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to connect to in-memory sqlite3 instance: %s", err)
+	}
+	defer dbconn.Close()
+
+	// Convert the dbconn into a panicky connection
+	conn := dbconn.PanicOnError()
+
+	conn.Query(things.Create())
+
+	// An empty selection should not panic (but still error)
+	var first thing
+	conn.Query(things.Select(), &first)
+}
+
 // TestSqlite3_Transaction tests the transactional operations of Sqlite3,
 // including Commit, Rollback, and Close
 func TestSqlite3_Transaction(t *testing.T) {
