@@ -89,8 +89,8 @@ func (table TableElem) PrimaryKey() PKArray {
 }
 
 // Select returns a SelectStmt for the entire table
-func (table *TableElem) Select(dest ...interface{}) (stmt SelectStmt) {
-	return SelectTable(table, dest...)
+func (table *TableElem) Select(selections ...Selectable) (stmt SelectStmt) {
+	return SelectTable(table, selections...)
 }
 
 // Update is an alias for Update(table). It will create an UPDATE statement

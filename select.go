@@ -269,14 +269,37 @@ func (stmt SelectStmt) Offset(offset int) SelectStmt {
 	return stmt
 }
 
-func SelectTable(table *TableElem, dest ...interface{}) (stmt SelectStmt) {
+// SelectTable creates a SELECT statement from the given table and its
+// columns. Any additional selections will not have their table added to
+// the SelectStmt's tables field - they must be added manually or through
+// a join. To perform selections using cartesian logic, use Select() instead.
+func SelectTable(table *TableElem, selects ...Selectable) (stmt SelectStmt) {
 	stmt.tables = []*TableElem{table}
 
 	// Add the columns from the alias
 	stmt.columns = table.columns.order
+
+	// Add any additional selections
+	for _, selection := range selects {
+		if selection == nil {
+			stmt.AddMeta("sol: received a nil selectable in SelectTable()")
+			return
+		}
+		stmt.columns = append(stmt.columns, selection.Columns()...)
+	}
+
+	for _, column := range stmt.columns {
+		if column.IsInvalid() {
+			stmt.AddMeta(
+				"sol: the column %s does not exist", column.FullName(),
+			)
+			return
+		}
+	}
 	return
 }
 
+// Select generates a new SELECT statement from the given columns and tables.
 func Select(selections ...Selectable) (stmt SelectStmt) {
 	columns := make([]Columnar, 0)
 	for _, selection := range selections {
