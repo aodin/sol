@@ -25,6 +25,12 @@ type InsertStmt struct {
 	fields  fields
 }
 
+// String outputs the parameter-less INSERT statement in a neutral dialect.
+func (stmt InsertStmt) String() string {
+	compiled, _ := stmt.Compile(&defaultDialect{}, Params())
+	return compiled
+}
+
 // Table returns the INSERT statement's table
 func (stmt InsertStmt) Table() *TableElem {
 	return stmt.table

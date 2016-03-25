@@ -28,6 +28,12 @@ type SelectStmt struct {
 	offset     int
 }
 
+// String outputs the parameter-less SELECT statement in a neutral dialect.
+func (stmt SelectStmt) String() string {
+	compiled, _ := stmt.Compile(&defaultDialect{}, Params())
+	return compiled
+}
+
 // TODO where should this function live? Also used in postgres.InsertStmt
 func CompileColumns(columns []Columnar) []string {
 	names := make([]string, len(columns))

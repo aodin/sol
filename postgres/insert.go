@@ -15,8 +15,8 @@ type InsertStmt struct {
 	returning []sol.Columnar
 }
 
-// String outputs the parameter-less INSERT ... RETURNING statement in a
-// neutral dialect.
+// String outputs the parameter-less INSERT ... RETURNING statement in the
+// PostGres dialect.
 func (stmt InsertStmt) String() string {
 	compiled, _ := stmt.Compile(&PostGres{}, sol.Params())
 	return compiled
