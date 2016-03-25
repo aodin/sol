@@ -1,16 +1,10 @@
 package sol
 
-import (
-	"database/sql"
-	"testing"
-)
-
-var _ executer = &sql.DB{}
-var _ executer = &sql.Tx{}
+import "testing"
 
 func TestConn(t *testing.T) {
 	// Creating a Must() connection should not modify the original connection
-	c := &conn{}
+	c := &DBConn{}
 	d := c.Must()
 	if !d.panicky {
 		t.Errorf("Expected Must() connection to have panicky = true")

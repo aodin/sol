@@ -14,6 +14,9 @@ type executer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
+var _ executer = &sql.DB{}
+var _ executer = &sql.Tx{}
+
 func compile(d dialect.Dialect, stmt Executable) (string, *Parameters, error) {
 	// Initialize a list of empty parameters
 	params := Params()
@@ -108,14 +111,16 @@ type TX interface {
 	Rollback() error
 }
 
-type conn struct {
+// DBConn is a database connection pool. Most functions should use the
+// Conn interface instead of this type.
+type DBConn struct {
 	db      *sql.DB
 	dialect dialect.Dialect
 	panicky bool
 }
 
 // Begin will start a new transaction on the current connection pool
-func (c *conn) Begin() (TX, error) {
+func (c *DBConn) Begin() (TX, error) {
 	tx, err := c.db.Begin()
 	if c.panicky && err != nil {
 		log.Panic(err)
@@ -124,7 +129,7 @@ func (c *conn) Begin() (TX, error) {
 }
 
 // Close will make the current connection pool unusable
-func (c *conn) Close() error {
+func (c *DBConn) Close() error {
 	err := c.db.Close()
 	if c.panicky && err != nil {
 		log.Panic(err)
@@ -133,12 +138,12 @@ func (c *conn) Close() error {
 }
 
 // Dialect returns the current connection pool's dialect, e.g. sqlite3
-func (c *conn) Dialect() dialect.Dialect {
+func (c *DBConn) Dialect() dialect.Dialect {
 	return c.dialect
 }
 
 // Query executes an Executable statement.
-func (c *conn) Query(stmt Executable, dest ...interface{}) error {
+func (c *DBConn) Query(stmt Executable, dest ...interface{}) error {
 	err := perform(c.db, c.dialect, stmt, dest...)
 	if c.panicky && err != nil {
 		log.Panic(err)
@@ -149,7 +154,7 @@ func (c *conn) Query(stmt Executable, dest ...interface{}) error {
 // String returns parameter-less SQL. If an error occurred during compilation,
 // then the string output of the error will be returned.
 // TODO Common string function
-func (c *conn) String(stmt Executable) string {
+func (c *DBConn) String(stmt Executable) string {
 	compiled, err := stmt.Compile(c.dialect, Params())
 	if err != nil {
 		return err.Error()
@@ -158,19 +163,19 @@ func (c *conn) String(stmt Executable) string {
 }
 
 // PanicOnError will create a new connection that will panic on any error
-func (c conn) PanicOnError() *conn {
+func (c DBConn) PanicOnError() *DBConn {
 	c.panicky = true
 	return &c
 }
 
 // Must is an alias for PanicOnError
-func (c conn) Must() *conn {
+func (c DBConn) Must() *DBConn {
 	return c.PanicOnError()
 }
 
 // Open connects to the database using the given driver and credentials.
 // It returns a database connection pool and an error if one occurred.
-func Open(driver, credentials string) (*conn, error) {
+func Open(driver, credentials string) (*DBConn, error) {
 	db, err := sql.Open(driver, credentials)
 	if err != nil {
 		return nil, err
@@ -181,7 +186,7 @@ func Open(driver, credentials string) (*conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &conn{db: db, dialect: d}, nil
+	return &DBConn{db: db, dialect: d}, nil
 }
 
 type transaction struct {
