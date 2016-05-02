@@ -207,6 +207,32 @@ func (col ColumnElem) IsNotNull() UnaryClause {
 	return UnaryClause{Pre: col, Sep: " IS NOT NULL"}
 }
 
+// Like creates a pattern matching clause that can be used in conditional
+// clauses.
+//  table.Select().Where(table.C["name"].Like(`_b%`))
+func (col ColumnElem) Like(search string) BinaryClause {
+	return col.operator(" LIKE ", search)
+}
+
+// NotLike creates a pattern matching clause that can be used in conditional
+// clauses.
+//  table.Select().Where(table.C("name").NotLike(`_b%`))
+func (col ColumnElem) NotLike(search string) BinaryClause {
+	return col.operator(" NOT LIKE ", search)
+}
+
+// Like creates a case insensitive pattern matching clause that can be used in
+// conditional clauses.
+//  table.Select().Where(table.C("name").ILike(`_b%`))
+func (col ColumnElem) ILike(search string) BinaryClause {
+	return col.operator(" ILIKE ", search)
+}
+
+// TODO common Not clause?
+func (col ColumnElem) NotILike(search string) BinaryClause {
+	return col.operator(" NOT ILIKE ", search)
+}
+
 // In creates a comparison clause with an IN operator that can be used in
 // conditional clauses. An interface is used because the args may be of any
 // type: ints, strings...
