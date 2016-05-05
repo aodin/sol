@@ -12,14 +12,14 @@ type Tabular interface {
 }
 
 type TableElem struct {
-	name    string
-	alias   string
-	columns Columns
-	pk      PKArray // Table's primary key
-	uniques []UniqueArray
-	fks     []FKElem // This table's foreign keys
-	reverse []FKElem // Tables that link to this table
-	creates []types.Type
+	name         string
+	alias        string
+	columns      Columns
+	pk           PKArray // Table's primary key
+	uniques      []UniqueArray
+	fks          []FKElem // This table's foreign keys
+	referencedBy []FKElem // Foreign keys that reference this table
+	creates      []types.Type
 }
 
 // Column returns the column as a ColumnElem. If the column does not exist
@@ -63,6 +63,11 @@ func (table *TableElem) Drop() DropStmt {
 	return DropStmt{table: table}
 }
 
+// ForeignKeys returns the table's foreign keys
+func (table *TableElem) ForeignKeys() []FKElem {
+	return table.fks
+}
+
 func (table TableElem) GetColumn(name string) Columnar {
 	return table.columns.Get(name)
 }
@@ -86,6 +91,11 @@ func (table *TableElem) Name() string {
 // PrimaryKey returns the primary key array
 func (table TableElem) PrimaryKey() PKArray {
 	return table.pk
+}
+
+// ReferencedBy returns the foreign keys that reference this table
+func (table *TableElem) ReferencedBy() []FKElem {
+	return table.referencedBy
 }
 
 // Select returns a SelectStmt for the entire table

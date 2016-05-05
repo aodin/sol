@@ -103,6 +103,9 @@ func (fk FKElem) Modify(table *TableElem) error {
 	// Add it to the list of foreign keys
 	table.fks = append(table.fks, fk)
 
+	// Add the current table to the references of the foreign key table
+	fk.references.referencedBy = append(fk.references.referencedBy, fk)
+
 	return nil
 }
 
