@@ -77,7 +77,7 @@ func (fk FKElem) Modify(table *TableElem) error {
 	}
 
 	// Add the table to the foreign key
-	if fk.table != nil {
+	if fk.table != nil && fk.table != table {
 		return fmt.Errorf(
 			"sol: foreign key %s already belongs to table %s",
 			fk.name, fk.table.name,
@@ -153,6 +153,10 @@ func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 		col = table.C(pk[0])
 	}
 
+	if col.IsInvalid() {
+		log.Panic("sol: referenced column does not exist")
+	}
+
 	// Allow an overriding datatype
 	datatype := col.Type()
 	if len(datatypes) > 0 {
@@ -164,5 +168,56 @@ func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 		col:        col,
 		datatype:   datatype,
 		references: col.Table(),
+	}
+}
+
+// SelfFKElem allows a table to have a foreign key to itself. willReference
+// is a placeholder for the column the self-referential foreign key
+// will reference
+type SelfFKElem struct {
+	FKElem
+	willReference string
+}
+
+// Modify implements the TableModifier interface. It creates a column and
+// adds the same column to the create array, will adding the referencing
+// table and column
+func (fk SelfFKElem) Modify(table *TableElem) error {
+	if table == nil {
+		return fmt.Errorf("sol: self foreign keys cannot modify a nil table")
+	}
+	fk.FKElem.table = table
+	fk.FKElem.references = table
+
+	// Does the reference column exist?
+	fk.FKElem.col = table.C(fk.willReference)
+	if fk.FKElem.col.IsInvalid() {
+		return fmt.Errorf("sol: no column %s exists on table %s - is it created after the foreign key?", fk.willReference, table.Name())
+	}
+
+	// Set the datatype to the referenced column datatype - unless it has
+	// already been set during construction
+	if fk.FKElem.datatype == nil {
+		fk.FKElem.datatype = fk.FKElem.col.Type()
+	}
+
+	return fk.FKElem.Modify(table)
+}
+
+// SelfForeignKey creates a self-referential foreign key
+func SelfForeignKey(name, ref string, datatypes ...types.Type) SelfFKElem {
+	// Allow the type to be overridden by a single optional type
+	var datatype types.Type
+	if len(datatypes) > 0 {
+		datatype = datatypes[0]
+	}
+
+	return SelfFKElem{
+		FKElem: FKElem{
+			name:     name,
+			datatype: datatype,
+			// col and references will be added during Modify
+		},
+		willReference: ref,
 	}
 }

@@ -21,21 +21,22 @@ func TestForeignKey(t *testing.T) {
 		`CREATE TABLE "messages" (
   "id" INTEGER,
   "user_id" INTEGER REFERENCES users("id"),
+  "parent_id" INTEGER REFERENCES messages("id"),
   "text" TEXT
 );`,
 		messages.Create(),
 	)
 
-	// The messages table should reference users
-	if len(messages.ForeignKeys()) != 1 {
+	if len(messages.ForeignKeys()) != 2 {
 		t.Fatalf(
-			"unexpected length of messages foreign keys: %d != 1",
+			"unexpected length of messages foreign keys: %d != 2",
 			len(messages.ForeignKeys()),
 		)
 	}
 
+	// The messages table's first reference should be users
 	if messages.ForeignKeys()[0].references != users {
-		t.Errorf("messages foreign key should reference table users")
+		t.Errorf("messages' first foreign key should reference table users")
 	}
 
 	// The users table should be referenced by messages and contacts

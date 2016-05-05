@@ -29,6 +29,7 @@ var contacts = Table("contacts",
 var messages = Table("messages",
 	Column("id", types.Integer()),
 	ForeignKey("user_id", users.C("id")),
+	SelfForeignKey("parent_id", "id"),
 	Column("text", types.Text()),
 )
 
