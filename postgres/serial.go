@@ -5,7 +5,7 @@ import (
 	"github.com/aodin/sol/types"
 )
 
-// serial is a postgres-specfic auto-increment type. It implies NOT NULL.
+// serial is a postgres-specific auto-increment type. It implies NOT NULL.
 type serial struct {
 	name     string
 	isUnique bool
@@ -22,11 +22,13 @@ func (t serial) Create(d dialect.Dialect) (string, error) {
 	return compiled, nil
 }
 
+// Unique sets the serial type as unique
 func (t serial) Unique() serial {
 	t.isUnique = true
 	return t
 }
 
+// Serial creates a new serial type
 func Serial() (t serial) {
 	t.name = "serial"
 	return

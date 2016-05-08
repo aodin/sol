@@ -146,7 +146,7 @@ func (stmt SelectStmt) hasTable(name string) bool {
 	return false
 }
 
-// All removes the DISTINCT clause from the SELECT statment.
+// All removes the DISTINCT clause from the SELECT statement.
 func (stmt SelectStmt) All() SelectStmt {
 	stmt.isDistinct = false
 	stmt.distincts = nil

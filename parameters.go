@@ -4,6 +4,8 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
+// Parameter is a value that will be passed to the database using a
+// dialect specific parameterization
 type Parameter struct {
 	Value interface{}
 }
@@ -15,16 +17,20 @@ func (p *Parameter) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	return d.Param(ps.Len() - 1), nil
 }
 
+// Parameters aggregated values before parameterization
 type Parameters []interface{}
 
+// Add adds a parameter
 func (ps *Parameters) Add(param interface{}) {
 	*ps = append(*ps, param)
 }
 
+// Len returns the length of the Parameters
 func (ps *Parameters) Len() int {
 	return len(*ps)
 }
 
+// Params creates a new Parameters
 func Params() *Parameters {
 	return &Parameters{}
 }

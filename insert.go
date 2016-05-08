@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	// ErrNoColumns is returned when a query for one columns returns none
 	ErrNoColumns = errors.New(
 		"sol: attempt to create a statement with zero columns",
 	)
@@ -72,7 +73,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	if rows == 0 {
 		rows = 1
 		stmt.args = make([]interface{}, cols)
-		for i, _ := range stmt.args {
+		for i := range stmt.args {
 			stmt.args[i] = nil
 		}
 	}
@@ -357,7 +358,7 @@ func removeColumn(columns []Columnar, name string) []Columnar {
 func valuesMap(stmt InsertStmt, values Values) (fields, error) {
 	fields := make(fields, len(values))
 	var i int
-	for column, _ := range values {
+	for column := range values {
 		if !stmt.Has(column) {
 			return nil, fmt.Errorf(
 				"sol: cannot INSERT a value with column '%s' as it has no corresponding column in the INSERT statement",
@@ -372,7 +373,7 @@ func valuesMap(stmt InsertStmt, values Values) (fields, error) {
 // Insert creates an INSERT statement for the given columns. There must be at
 // least one column and all columns must belong to the same table.
 func Insert(selections ...Selectable) (stmt InsertStmt) {
-	columns := make([]Columnar, 0)
+	var columns []Columnar
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: INSERT received a nil selectable - do the columns or tables you selected exist?")

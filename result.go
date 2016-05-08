@@ -15,6 +15,7 @@ type Scanner interface {
 	Scan(...interface{}) error
 }
 
+// Result is returned by a database query - it implements Scanner
 type Result struct {
 	stmt string
 	Scanner
@@ -46,7 +47,7 @@ func (r *Result) One(arg interface{}) error {
 		// TODO scan directly into values?
 		addr := make([]interface{}, len(columns))
 		dest := make([]interface{}, len(columns))
-		for i, _ := range addr {
+		for i := range addr {
 			dest[i] = &addr[i]
 		}
 
@@ -240,7 +241,7 @@ func (r *Result) All(arg interface{}) error {
 			// TODO scan directly into values?
 			addr := make([]interface{}, len(columns))
 			dest := make([]interface{}, len(columns))
-			for i, _ := range addr {
+			for i := range addr {
 				dest[i] = &addr[i]
 			}
 
