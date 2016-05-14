@@ -7,7 +7,7 @@ import (
 )
 
 func TestColumn(t *testing.T) {
-	expect := sol.NewTester(t, &PostGres{})
+	expect := sol.NewTester(t, Dialect())
 
 	expect.SQL(
 		`SELECT "meetings"."uuid", "meetings"."time" FROM "meetings" WHERE "meetings"."time" @> $1`,

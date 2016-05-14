@@ -10,7 +10,6 @@ import (
 
 	"github.com/aodin/config"
 	sql "github.com/aodin/sol"
-	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
 )
 
@@ -32,9 +31,6 @@ func getConfigOrUseTravis() (config.Database, error) {
 	}
 	return conf, err
 }
-
-// The sql dialect must implement the dialect interface
-var _ dialect.Dialect = &PostGres{}
 
 var things = sql.Table("things",
 	sql.Column("name", types.Varchar()),

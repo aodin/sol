@@ -8,13 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sql "github.com/aodin/sol"
-	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
 )
 
-// The sql dialect must implement the dialect interface
-var _ dialect.Dialect = &Sqlite3{}
-
+// Example schemas should not panic
 var things = sql.Table("things",
 	sql.Column("name", types.Varchar()),
 	sql.Column("created_at", types.Timestamp()), // TODO auto-timestamp?
