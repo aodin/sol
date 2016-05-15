@@ -84,6 +84,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		row := make([]string, cols)
 		for j := 0; j < cols; j += 1 {
 			// Parameters are dialect specific
+			// TODO Why isn't compile being used here?
 			row[j] = d.Param(param)
 			ps.Add(stmt.args[param])
 			param += 1
