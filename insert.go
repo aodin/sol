@@ -356,8 +356,7 @@ func removeColumn(columns []Columnar, name string) []Columnar {
 // DELETE statements.
 // TODO use a column set - that's all it needs - maybe move to fields?
 func valuesMap(stmt InsertStmt, values Values) (fields, error) {
-	fields := make(fields, len(values))
-	var i int
+	matches := fields{}
 	for column := range values {
 		if !stmt.Has(column) {
 			return nil, fmt.Errorf(
@@ -365,9 +364,9 @@ func valuesMap(stmt InsertStmt, values Values) (fields, error) {
 				column,
 			)
 		}
-		fields[i] = field{column: column} // TODO set index?
+		matches = append(matches, field{column: column}) // TODO set index?
 	}
-	return fields, nil
+	return matches, nil
 }
 
 // Insert creates an INSERT statement for the given columns. There must be at

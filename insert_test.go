@@ -27,6 +27,13 @@ func TestInsert(t *testing.T) {
 		users.Insert().Values(user{Name: "admin", Email: "admin@example.com"}),
 		"admin@example.com", "admin",
 	)
+
+	// Use sql.Values
+	expect.SQL(
+		`INSERT INTO "users" ("id", "name") VALUES ($1, $2)`,
+		users.Insert().Values(Values{"id": 1, "name": "user"}),
+		1, "user",
+	)
 }
 
 var emptyValues = []bool{
