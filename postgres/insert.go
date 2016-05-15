@@ -12,7 +12,11 @@ import (
 // statement.
 type InsertStmt struct {
 	sol.InsertStmt
-	returning []sol.Columnar
+	onConflict      bool
+	conflictTargets []string
+	values          sol.Values
+	where           sol.Clause
+	returning       []sol.Columnar
 }
 
 // String outputs the parameter-less INSERT ... RETURNING statement in the
@@ -30,6 +34,30 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *sol.Parameters) (string, e
 	if err != nil {
 		return "", err
 	}
+
+	if stmt.onConflict {
+		compiled += " ON CONFLICT"
+		// TODO conflict targets
+		if len(stmt.values) > 0 {
+			compiledValues, err := stmt.values.Compile(d, ps)
+			if err != nil {
+				return "", fmt.Errorf("sol: failed to compile values: %s", err)
+			}
+			compiled += fmt.Sprintf(" DO UPDATE SET %s", compiledValues)
+
+			// Add a WHERE clause if specified
+			if stmt.where != nil {
+				where, err := stmt.where.Compile(d, ps)
+				if err != nil {
+					return "", err
+				}
+				compiled += fmt.Sprintf(" WHERE %s", where)
+			}
+		} else {
+			compiled += " DO NOTHING"
+		}
+	}
+
 	if len(stmt.returning) > 0 {
 		compiled += fmt.Sprintf(
 			" RETURNING %s",
@@ -37,6 +65,54 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *sol.Parameters) (string, e
 		)
 	}
 	return compiled, nil
+}
+
+// OnConflict adds UPSERT behavior to the INSERT. By Default, it will
+// DO NOTHING.
+func (stmt InsertStmt) OnConflict(targets ...string) InsertStmt {
+	stmt.conflictTargets = targets
+	stmt.onConflict = true
+	return stmt
+}
+
+// Where should only be used alongside OnConflict. Only one WHERE
+// is allowed per statement. Additional calls to Where will overwrite the
+// existing WHERE clause.
+func (stmt InsertStmt) Where(conditions ...sol.Clause) InsertStmt {
+	if len(conditions) > 1 {
+		// By default, multiple where clauses will be joined using AllOf
+		stmt.where = sol.AllOf(conditions...)
+	} else if len(conditions) == 1 {
+		stmt.where = conditions[0]
+	} else {
+		// Clear the existing conditions
+		stmt.where = nil
+	}
+	return stmt
+}
+
+// DoNothing sets the ON CONFLICT behavior to DO NOTHING
+func (stmt InsertStmt) DoNothing() InsertStmt {
+	stmt.onConflict = true
+	stmt.values = sol.Values{}
+	return stmt
+}
+
+// DoUpdate sets the ON CONFLICT behavior to DO UPDATE if at least
+// one value is given
+func (stmt InsertStmt) DoUpdate(values sol.Values) InsertStmt {
+	stmt.onConflict = true
+	stmt.values = values
+	return stmt
+}
+
+// RemoveOnConflict will remove the ON CONFLICT behavior
+func (stmt InsertStmt) RemoveOnConflict() InsertStmt {
+	stmt.onConflict = false
+	stmt.values = sol.Values{}
+	stmt.conflictTargets = nil
+	stmt.where = nil
+	return stmt
 }
 
 // Returning adds a RETURNING clause to the statement.

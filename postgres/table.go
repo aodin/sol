@@ -1,8 +1,6 @@
 package postgres
 
-import (
-	"github.com/aodin/sol"
-)
+import "github.com/aodin/sol"
 
 // TableElem is a postgres specific implementation of a table. Major
 // differences include:
@@ -12,6 +10,8 @@ type TableElem struct {
 	*sol.TableElem
 }
 
+// Column will return a postgres specific ColumnElem rather than a generic
+// ColumnElem
 func (table TableElem) Column(name string) ColumnElem {
 	if table.Has(name) {
 		switch elem := table.GetColumn(name).(type) {
@@ -30,6 +30,7 @@ func (table TableElem) C(name string) ColumnElem {
 	return table.Column(name)
 }
 
+// Insert creates a postgres.InsertStmt from the table
 func (table *TableElem) Insert() InsertStmt {
 	return Insert(table)
 }

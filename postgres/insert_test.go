@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"testing"
+	"time"
 
 	"github.com/aodin/sol"
 )
@@ -21,6 +22,20 @@ func TestInsert(t *testing.T) {
 	expect.SQL(
 		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) RETURNING "meetings"."uuid", "meetings"."time"`,
 		meetings.Insert().Returning(),
+		nil, nil,
+	)
+
+	// UPSERT
+	now := time.Now()
+	expect.SQL(
+		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) ON CONFLICT DO UPDATE SET "time" = $3 WHERE "meetings"."time" >= $4`,
+		meetings.Insert().OnConflict().DoUpdate(sol.Values{"time": now}).Where(meetings.C("time").GTE(now)),
+		nil, nil, now, now,
+	)
+
+	expect.SQL(
+		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		meetings.Insert().OnConflict().DoNothing(),
 		nil, nil,
 	)
 

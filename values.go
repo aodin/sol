@@ -2,12 +2,32 @@ package sol
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
+	"strings"
+
+	"github.com/aodin/sol/dialect"
 )
 
 // Values is a map of column names to parameters.
 type Values map[string]interface{}
+
+// Compile outputs the Values in a format for UPDATE using the given dialect
+// and parameters.
+func (v Values) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	keys := v.Keys()
+	values := make([]string, len(keys))
+	for i, key := range keys {
+		param := &Parameter{v[key]}
+		compiledParam, err := param.Compile(d, ps)
+		if err != nil {
+			return "", err
+		}
+		values[i] = fmt.Sprintf(`"%s" = %s`, key, compiledParam)
+	}
+	return strings.Join(values, ", "), nil
+}
 
 // Diff returns the values in v that differ from the values in other.
 // ISO 31-11: v \ other

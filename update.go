@@ -2,7 +2,6 @@ package sol
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/aodin/sol/dialect"
 )
@@ -41,22 +40,16 @@ func (stmt UpdateStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	}
 
 	// Compile the values
-	keys := stmt.values.Keys()
-	values := make([]string, len(keys))
-	for i, key := range keys {
-		param := &Parameter{stmt.values[key]}
-		compiledParam, err := param.Compile(d, ps)
-		if err != nil {
-			return "", err
-		}
-		values[i] = fmt.Sprintf(`"%s" = %s`, key, compiledParam)
+	compiledValues, err := stmt.values.Compile(d, ps)
+	if err != nil {
+		return "", fmt.Errorf("sol: failed to compile UPDATE values: %s", err)
 	}
 
 	// Begin building the UPDATE statement
 	compiled := fmt.Sprintf(
 		`UPDATE "%s" SET %s`,
 		stmt.table.Name(),
-		strings.Join(values, ", "),
+		compiledValues,
 	)
 
 	// Add a conditional statement if it exists
