@@ -1,15 +1,22 @@
 package sol
 
 import (
-	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/aodin/sol/dialect"
 )
 
-var paramsRegex = regexp.MustCompile(`:(\w+)`)
+// paramsRegex will match any words with a leading colon.
+// Since Go's re2 has no lookbehind / lookahead assertions, we'll match
+// any number of leading colons - which will include type casts -
+// and filter afterwards
+// TODO this regular expression should be replaced by a parser
+var paramsRegex = regexp.MustCompile(`(:)+(\w+)`)
 
+// TextStmt allows the creation of custom SQL statements
 type TextStmt struct {
+	Stmt
 	text   string
 	values Values
 }
@@ -22,37 +29,40 @@ func (stmt TextStmt) String() string {
 
 // Compile outputs the statement using the given dialect and parameters.
 func (stmt TextStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
-	// TODO aggregate errors?
-	var err error
-
 	// Select the parameters from the statement and replace them
 	// with dialect specific parameters
 	replacer := func(match string) string {
-		// TODO the regex should ignore the colon
+		// Remove any matches with more than one leading colon
+		if strings.LastIndex(match, ":") != 0 {
+			return match
+		}
+
 		key := match[1:]
 
 		// Parameter names must match value keys
 		value, exists := stmt.values[key]
 		if !exists {
-			err = fmt.Errorf("sol: missing value for parameter '%s'", key)
+			stmt.AddMeta("sol: missing value for parameter '%s'", key)
 		}
 
 		param := &Parameter{Value: value}
-		compiled, paramErr := param.Compile(d, ps)
-		if paramErr != nil {
-			err = paramErr
+		replacement, err := param.Compile(d, ps)
+		if err != nil {
+			stmt.AddMeta(err.Error())
 		}
-		return compiled
+		return replacement
 	}
-
-	return paramsRegex.ReplaceAllStringFunc(stmt.text, replacer), err
+	compiled := paramsRegex.ReplaceAllStringFunc(stmt.text, replacer)
+	return compiled, stmt.Error()
 }
 
+// Values sets the values of the statement
 func (stmt TextStmt) Values(values Values) TextStmt {
 	stmt.values = values
 	return stmt
 }
 
+// Text creates a TextStmt with custom SQL
 func Text(text string, values ...Values) TextStmt {
 	merged := Values{}
 	for _, val := range values {

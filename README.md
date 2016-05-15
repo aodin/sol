@@ -3,7 +3,7 @@ Sol
 
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/aodin/sol) [![Build Status](https://travis-ci.org/aodin/sol.svg?branch=master)](https://travis-ci.org/aodin/sol) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aodin/sol)
 
-A relational database toolkit for Go - in the style of Python's [SQLAlchemy Core](http://docs.sqlalchemy.org/en/latest/core/):
+A SQL toolkit for Go - in the style of Python's [SQLAlchemy Core](http://docs.sqlalchemy.org/en/latest/core/):
 
 * Build complete database schemas
 * Create reusable and cross-dialect SQL statements
@@ -283,11 +283,11 @@ expect := NewTester(t, &postgres.PostGres{})
 The instance's `SQL` method will test expected output and parameterization:
 
 ```go
-expect.SQL(`DELETE FROM "users"`, users.Delete())
+expect.SQL(`DELETE FROM "users"`, Users.Delete())
 
 expect.SQL(
     `INSERT INTO "users" ("name") VALUES ($1), ($2)`,
-    users.Insert().Values([]sol.Values{{"name": "Totti"}, {"name": "De Rossi"}}),
+    Users.Insert().Values([]sol.Values{{"name": "Totti"}, {"name": "De Rossi"}}),
     "Totti", "De Rossi",
 )
 ```
@@ -295,7 +295,7 @@ expect.SQL(
 And the `Error` method will test that an error occurred:
 
 ```go
-expect.Error(sql.Select(users.C("does-not-exist")))
+expect.Error(sql.Select(Users.C("does-not-exist")))
 ```
 
 Happy Hacking!
