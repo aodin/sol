@@ -21,6 +21,7 @@ type Columnar interface {
 	Type() types.Type
 }
 
+// ColumnElem is a dialect neutral implementation of a SQL column
 type ColumnElem struct {
 	operators []string // TODO or nested custom type?
 	name      string
@@ -78,10 +79,13 @@ func (col ColumnElem) FullName() string {
 	return fmt.Sprintf(`"%s"."%s"`, col.table.name, col.name)
 }
 
+// IsInvalid will return true when a column that does not exist was
+// created by a table function - such as .Column() or .C()
 func (col ColumnElem) IsInvalid() bool {
 	return col.invalid
 }
 
+// Name returns the name of the column - unescaped and without an alias
 func (col ColumnElem) Name() string {
 	return fmt.Sprintf(`%s`, col.name)
 }

@@ -176,7 +176,7 @@ When using the Sqlite3 dialect it will generate the following SQL:
 INSERT INTO "users" ("id", "name", "password") VALUES (?, ?, ?)
 ```
 
-Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case sensitive manner that is aware of camel to snake case conversion. More complex names or aliases should specify db struct tags.
+Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case insensitive manner that is also aware of camel to snake case conversion. More complex names or aliases should specify db struct tags.
 
 ```go
 type User struct {
@@ -213,6 +213,10 @@ conn.Query(Users.Update().Values(
 
 ```go
 Users.Delete().Where(Users.C("name").Equals("admin"))
+```
+
+```sql
+DELETE FROM "users" WHERE "users"."name" = ?
 ```
 
 #### SELECT
@@ -286,9 +290,9 @@ The instance's `SQL` method will test expected output and parameterization:
 expect.SQL(`DELETE FROM "users"`, Users.Delete())
 
 expect.SQL(
-    `INSERT INTO "users" ("name") VALUES ($1), ($2)`,
-    Users.Insert().Values([]sol.Values{{"name": "Totti"}, {"name": "De Rossi"}}),
-    "Totti", "De Rossi",
+    `INSERT INTO "users" ("id", "name") VALUES ($1, $2)`,
+    Users.Insert().Values(Values{"id": 1, "name": "user"}),
+    1, "user",
 )
 ```
 

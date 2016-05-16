@@ -7,6 +7,8 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
+// Clause is the interface that all structural components of a statement
+// must implement
 type Clause interface {
 	Compiles
 }
@@ -17,11 +19,17 @@ type ArrayClause struct {
 	sep     string
 }
 
+var _ Clause = ArrayClause{}
+
+// String returns the parameter-less ArrayClause in a neutral dialect.
 func (c ArrayClause) String() string {
 	compiled, _ := c.Compile(&defaultDialect{}, Params())
 	return compiled
 }
 
+// Compile returns the ArrayClause as a compiled string using
+// the given Dialect - possibly with an error. Any parameters will
+// be appended to the given Parameters.
 func (c ArrayClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	compiled := make([]string, len(c.clauses))
 	var err error
@@ -50,11 +58,17 @@ type BinaryClause struct {
 	Sep       string
 }
 
+var _ Clause = BinaryClause{}
+
+// String returns the parameter-less BinaryClause in a neutral dialect.
 func (c BinaryClause) String() string {
 	compiled, _ := c.Compile(&defaultDialect{}, Params())
 	return compiled
 }
 
+// Compile returns the BinaryClause as a compiled string using
+// the given Dialect - possibly with an error. Any parameters will
+// be appended to the given Parameters.
 func (c BinaryClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	var pre, post string
 	var err error
@@ -78,11 +92,17 @@ type FuncClause struct {
 	Name  string
 }
 
+var _ Clause = FuncClause{}
+
+// String returns the parameter-less FuncClause in a neutral dialect.
 func (c FuncClause) String() string {
 	compiled, _ := c.Compile(&defaultDialect{}, Params())
 	return compiled
 }
 
+// Compile returns the FuncClause as a compiled string using
+// the given Dialect - possibly with an error. Any parameters will
+// be appended to the given Parameters.
 func (c FuncClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	cc, err := c.Inner.Compile(d, ps)
 	if err != nil {
@@ -96,11 +116,17 @@ type UnaryClause struct {
 	Sep string
 }
 
+var _ Clause = UnaryClause{}
+
+// String returns the parameter-less UnaryClause in a neutral dialect.
 func (c UnaryClause) String() string {
 	compiled, _ := c.Compile(&defaultDialect{}, Params())
 	return compiled
 }
 
+// Compile returns the UnaryClause as a compiled string using
+// the given Dialect - possibly with an error. Any parameters will
+// be appended to the given Parameters.
 func (c UnaryClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	var pre string
 	var err error

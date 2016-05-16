@@ -1,8 +1,6 @@
 package sol
 
-import (
-	"github.com/aodin/sol/dialect"
-)
+import "github.com/aodin/sol/dialect"
 
 // Parameter is a value that will be passed to the database using a
 // dialect specific parameterization

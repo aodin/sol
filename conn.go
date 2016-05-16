@@ -97,6 +97,10 @@ type Transaction interface {
 	TX
 }
 
+// Conn is the common database connection interface. It can perform
+// queries and dialect specific compilation. Since transactions also
+// implement this interface, it is highly recommended to pass the Conn
+// interface to functions that do not need to modify transactional state.
 type Conn interface {
 	Begin() (TX, error)
 	Close() error
@@ -104,6 +108,10 @@ type Conn interface {
 	String(stmt Executable) string
 }
 
+// TX is the interface for a transaction. In addition to standard COMMIT
+// and ROLLBACK behavior, the interface includes a generic Close method
+// that can be used with defer. Close will rollback the transaction
+// unless the IsSuccessful method has been called.
 type TX interface {
 	Conn
 	Commit() error
@@ -142,7 +150,7 @@ func (c *DBConn) Dialect() dialect.Dialect {
 	return c.dialect
 }
 
-// Query executes an Executable statement.
+// Query executes an Executable statement
 func (c *DBConn) Query(stmt Executable, dest ...interface{}) error {
 	err := perform(c.db, c.dialect, stmt, dest...)
 	if c.panicky && err != nil && err != sql.ErrNoRows {
@@ -151,9 +159,9 @@ func (c *DBConn) Query(stmt Executable, dest ...interface{}) error {
 	return err
 }
 
-// String returns parameter-less SQL. If an error occurred during compilation,
-// then the string output of the error will be returned.
-// TODO Common string function
+// String returns the compiled Executable using the DB's dialect.
+// If an error is encountered during compilation, it will return the
+// error instead.
 func (c *DBConn) String(stmt Executable) string {
 	compiled, err := stmt.Compile(c.dialect, Params())
 	if err != nil {
@@ -216,6 +224,8 @@ func (tx *transaction) Close() (err error) {
 	return
 }
 
+// IsSuccessful will mark the transaction as successful, changing
+// the behavior of Close()
 func (tx *transaction) IsSuccessful() {
 	tx.successful = true
 }
@@ -229,6 +239,9 @@ func (tx *transaction) Query(stmt Executable, dest ...interface{}) error {
 	return err
 }
 
+// String returns the compiled Executable using the transaction's dialect.
+// If an error is encountered during compilation, it will return the
+// error instead.
 func (tx *transaction) String(stmt Executable) string {
 	compiled, err := stmt.Compile(tx.dialect, Params())
 	if err != nil {
