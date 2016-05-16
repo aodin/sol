@@ -43,6 +43,20 @@ func (v Values) Diff(other Values) Values {
 	return diff
 }
 
+// Equals returns true if both the receiver and parameter Values have
+// equal keys and values
+func (v Values) Equals(other Values) bool {
+	if len(v) != len(other) {
+		return false
+	}
+	for key, a := range v {
+		if b, ok := other[key]; !ok || !ObjectsAreEqual(a, b) {
+			return false
+		}
+	}
+	return true
+}
+
 // Exclude removes the given keys and returns the remaining Values
 func (v Values) Exclude(keys ...string) Values {
 	safe := Values{}

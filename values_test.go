@@ -16,6 +16,18 @@ func TestValues(t *testing.T) {
 	}
 }
 
+func TestValues_Equals(t *testing.T) {
+	if !(Values{}).Equals(Values{}) {
+		t.Errorf("Empty maps should be equal to each other")
+	}
+	if (Values{"a": 1}).Equals(Values{"a": true}) {
+		t.Errorf("Maps with different values should not be equal")
+	}
+	if (Values{"a": 1}).Equals(Values{"a": 1, "b": 2}) {
+		t.Errorf("Maps with a different number of keys should not be equal")
+	}
+}
+
 func TestValues_Exclude(t *testing.T) {
 	unsafe := Values{"a": 1, "b": 1}
 	safe := unsafe.Exclude("a", "c")
