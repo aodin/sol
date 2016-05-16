@@ -127,8 +127,10 @@ sol.Text(
 )
 ```
 
+The parameters will be re-written for the current dialect:
+
 ```sql
-SELECT * FROM users WHERE id > ? OR name LIKE ?
+SELECT * FROM users WHERE id = ? OR name = ?
 ```
 
 Sol also includes a variety of statements that can be constructed directly from declared schemas.
@@ -152,7 +154,7 @@ A `CREATE TABLE` statement can be created with:
 Users.Create()
 ```
 
-It will output dialect neutral SQL from its `String()` method and a dialect specific version from conn.String().
+As with most statements, it will output dialect neutral SQL from its `String()` method. Dialect specific output is created with the `String()` method on the current connection.
 
 ```sql
 CREATE TABLE "users" (
@@ -189,7 +191,7 @@ When using the Sqlite3 dialect it will generate the following SQL:
 INSERT INTO "users" ("id", "name", "password") VALUES (?, ?, ?)
 ```
 
-Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case insensitive manner that is also aware of camel to snake case conversion. More complex names or aliases should specify db struct tags.
+Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case insensitive manner that is also aware of camel to snake case conversion. More complex names or aliases should specify db struct tags:
 
 ```go
 type User struct {
@@ -208,7 +210,7 @@ Users.Update()
 sol.Update(Users)
 ```
 
-Both will produce the following SQL with the Sqlite3 dialect:
+Both will produce the following SQL with the sqlite3 dialect:
 
 ```sql
 UPDATE "users" SET "id" = ?, "name" = ?, "password" = ?
@@ -262,7 +264,7 @@ conn.Query(sol.Select(Users.C("id")), &ids)
 
 ### Table Schema
 
-Tables can be constructed with foreign keys, unique constraints, and composite primary keys. See the `sol_test.go` file for more examples.
+Tables can be constructed with foreign keys, unique constraints, and composite primary keys. See the `sol_test.go` file for more examples:
 
 ```go
 var Contacts = sol.Table("contacts",
