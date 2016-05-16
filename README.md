@@ -70,7 +70,7 @@ go get -u github.com/aodin/sol
 Usage
 -----
 
-Import Sol and at least one database dialect.
+Import Sol and at least one database dialect:
 
 ```go
 import (
@@ -80,7 +80,7 @@ import (
 )
 ```
 
-Calling `Open` will return a `*DBConn` that implements the `Conn` interface. All queries can be performed the `Query` method, which will return an error if the query fails.
+Calling `Open` will return a `*DB` that implements Sol's `Conn` interface and embeds Go's `*sql.DB`. All queries can be performed the `Query` method, which will return an error if the query fails:
 
 ```go
 conn, err := sol.Open("sqlite3", ":memory:")
@@ -99,14 +99,14 @@ if err = conn.Query(Users.Select(), &user); err != nil {
 }
 ```
 
-If you'd prefer to have the query panic on error, you can create a panicky version of the connection.
+If you'd prefer to have queries panic on error, you can create a panicky version of the connection:
 
 ```go
 panicky := conn.PanicOnError()
 panicky.Query(Users.Create())
 ```
 
-Transactions are started with `Begin` and include the standard methods `Rollback` and `Commit`. There is also a `Close` method which will rollback the transaction unless `IsSuccessful` is called.
+Transactions are started with `Begin` and include the standard methods `Rollback` and `Commit`. There is also a `Close` method which will rollback the transaction unless `IsSuccessful` is called:
 
 ```go
 tx, _ := conn.PanicOnError().Begin()
@@ -118,7 +118,20 @@ tx.IsSuccessful()
 
 ### Statements
 
-Sol includes a variety of SQL statements that can be constructed directly from declared table schemas.
+SQL can be handwritten using the `Text` function, which requires parameters to be written in a dialect neutral format and passed within a `Values` type:
+
+```go
+sol.Text(
+    `SELECT * FROM users WHERE id = :id OR name = :name`,
+    sol.Values{"name": "admin", "id": 1},
+)
+```
+
+```sql
+SELECT * FROM users WHERE id > ? OR name LIKE ?
+```
+
+Sol also includes a variety of statements that can be constructed directly from declared schemas.
 
 #### CREATE TABLE
 

@@ -4,7 +4,7 @@ import "testing"
 
 func TestConn(t *testing.T) {
 	// Creating a Must() connection should not modify the original connection
-	c := &DBConn{}
+	c := &DB{}
 	d := c.Must()
 	if !d.panicky {
 		t.Errorf("Expected Must() connection to have panicky = true")
