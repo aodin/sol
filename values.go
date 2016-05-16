@@ -117,6 +117,17 @@ func (v Values) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}(v))
 }
 
+// Values returns the values of the Values map in the alphabetical order
+// of its keys.
+func (v Values) Values() []interface{} {
+	keys := v.Keys()
+	values := make([]interface{}, len(keys))
+	for i, key := range keys {
+		values[i] = v[key]
+	}
+	return values
+}
+
 // Values converts the given object to a Values{} type
 func ValuesOf(obj interface{}) Values {
 	values := Values{}
