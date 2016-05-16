@@ -10,7 +10,9 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
-// Values is a map of column names to parameters.
+// Values is a map of column names to values. It can be used both as
+// a source of values, such as in INSERT and UPDATE statements, or as
+// a destination for SELECT.
 type Values map[string]interface{}
 
 // Compile outputs the Values in a format for UPDATE using the given dialect
@@ -68,16 +70,18 @@ func (v Values) Keys() []string {
 	return keys
 }
 
-// Merge combines the Values{} types, with precedence to the Values given as
-// a parameter
-func (v Values) Merge(other Values) Values {
+// Merge combines the given Values without modifying the original Values.
+// Precedence is given to the rightmost Values given as parameters.
+func (v Values) Merge(others ...Values) Values {
 	merged := Values{}
 	// Copy the original map
 	for key, value := range v {
 		merged[key] = value
 	}
-	for key, value := range other {
-		merged[key] = value
+	for _, other := range others {
+		for key, value := range other {
+			merged[key] = value
+		}
 	}
 	return merged
 }

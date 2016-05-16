@@ -46,6 +46,11 @@ func TestValues_Merge(t *testing.T) {
 	if v != 4 {
 		t.Errorf("Unexpected value of 'c': %d != 4", v)
 	}
+
+	// a should not be affected
+	if _, exists := a["c"]; exists {
+		t.Errorf("The original Values should not be modified")
+	}
 }
 
 func TestValuesOf(t *testing.T) {
