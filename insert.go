@@ -20,7 +20,7 @@ var (
 // InsertStmt is the internal representation of an INSERT statement.
 type InsertStmt struct {
 	Stmt
-	table   *TableElem
+	table   Tabular
 	columns []Columnar
 	args    []interface{}
 	fields  fields
@@ -33,7 +33,7 @@ func (stmt InsertStmt) String() string {
 }
 
 // Table returns the INSERT statement's table
-func (stmt InsertStmt) Table() *TableElem {
+func (stmt InsertStmt) Table() Tabular {
 	return stmt.table
 }
 

@@ -17,7 +17,7 @@ func (columns *Columns) add(column Columnar) error {
 	if columns.Has(column.Name()) {
 		return fmt.Errorf(
 			"sol: table '%s' already has a column named '%s'",
-			column.Table().name,
+			column.Table().Name(),
 			column.Name(),
 		)
 	}

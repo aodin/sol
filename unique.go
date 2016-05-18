@@ -35,7 +35,11 @@ func (unique UniqueArray) Has(name string) bool {
 
 // Modify implements the TableModifier interface. It confirms that every column
 // given exists in the parent table.
-func (unique UniqueArray) Modify(table *TableElem) error {
+func (unique UniqueArray) Modify(tabular Tabular) error {
+	if tabular == nil || tabular.Table() == nil {
+		return fmt.Errorf("sol: unique constraints cannot modify a nil table")
+	}
+	table := tabular.Table() // Get the dialect neutral table
 	for _, col := range unique {
 		if !table.Has(col) {
 			return fmt.Errorf(

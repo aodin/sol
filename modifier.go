@@ -4,5 +4,5 @@ package sol
 // and constraints - must implement in order to be added to the Table()
 // constructor
 type Modifier interface {
-	Modify(*TableElem) error
+	Modify(Tabular) error
 }

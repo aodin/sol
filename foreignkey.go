@@ -68,10 +68,12 @@ func (fk FKElem) References() *TableElem {
 
 // Modify implements the TableModifier interface. It creates a column and
 // adds the same column to the create array.
-func (fk FKElem) Modify(table *TableElem) error {
-	if table == nil {
+func (fk FKElem) Modify(tabular Tabular) error {
+	if tabular == nil || tabular.Table() == nil {
 		return fmt.Errorf("sol: foreign keys cannot modify a nil table")
 	}
+	table := tabular.Table() // Get the dialect neutral table
+
 	if err := isValidColumnName(fk.name); err != nil {
 		return err
 	}
@@ -125,25 +127,36 @@ func (fk FKElem) OnUpdate(b fkAction) FKElem {
 // If given a column, it must already have its table assigned.
 func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 	var col Columnar
+	var table *TableElem
 	if fk == nil {
 		log.Panic("sol: inline foreign key was given a nil Selectable")
 	}
 	columns := fk.Columns()
+
+	// TODO use a switch with a fallthrough to fix repeated logic?
 	if len(columns) == 0 {
 		log.Panic(
 			"sol: inline foreign key Selectable must have at least one column",
 		)
 	} else if len(columns) == 1 {
 		col = columns[0]
-		if col.Table() == nil {
+		if col.Table() == nil || col.Table().Table() == nil {
 			log.Panic(
 				"sol: inline foreign key columns must have their table assigned before creation",
 			)
 		}
+		table = col.Table().Table()
 	} else {
 		// Simply use the table of the first column
 		// TODO This is a strange decision that will error silently
-		table := columns[0].Table()
+		// It also needs to call Table() twice to get the dialect neutral
+		// table implementation
+		if columns[0].Table() == nil || columns[0].Table().Table() == nil {
+			log.Panic(
+				"sol: inline foreign key columns must have their table assigned before creation",
+			)
+		}
+		table = columns[0].Table().Table()
 		pk := table.PrimaryKey()
 		if len(pk) != 1 {
 			log.Panic(
@@ -167,7 +180,7 @@ func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 		name:       name,
 		col:        col,
 		datatype:   datatype,
-		references: col.Table(),
+		references: table,
 	}
 }
 
@@ -182,10 +195,12 @@ type SelfFKElem struct {
 // Modify implements the TableModifier interface. It creates a column and
 // adds the same column to the create array, will adding the referencing
 // table and column
-func (fk SelfFKElem) Modify(table *TableElem) error {
-	if table == nil {
+func (fk SelfFKElem) Modify(tabular Tabular) error {
+	if tabular == nil || tabular.Table() == nil {
 		return fmt.Errorf("sol: self foreign keys cannot modify a nil table")
 	}
+	table := tabular.Table() // Get the dialect neutral table
+
 	fk.FKElem.table = table
 	fk.FKElem.references = table
 

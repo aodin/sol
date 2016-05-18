@@ -80,7 +80,7 @@ import (
 )
 ```
 
-Calling `Open` will return a `*DB` that implements Sol's `Conn` interface and embeds Go's `*sql.DB`. All queries can be performed the `Query` method, which will return an error if the query fails:
+Calling `Open` will return a `*DB` that implements Sol's `Conn` interface and embeds Go's `*sql.DB`. All queries use the `Query` method, which will return an error if the query fails:
 
 ```go
 conn, err := sol.Open("sqlite3", ":memory:")

@@ -17,7 +17,7 @@ type Columnar interface {
 	FullName() string
 	IsInvalid() bool
 	Name() string
-	Table() *TableElem
+	Table() Tabular
 	Type() types.Type
 }
 
@@ -30,6 +30,8 @@ type ColumnElem struct {
 	datatype  types.Type
 	invalid   bool
 }
+
+var _ Columnar = ColumnElem{}
 
 func (col ColumnElem) AddOperator(operator string) ColumnElem {
 	col.operators = append([]string{operator}, col.operators...) // prepend
@@ -76,7 +78,7 @@ func (col ColumnElem) Create(d dialect.Dialect) (string, error) {
 // FullName prefixes the column name with the table name
 // It deos not include opreators (such as 'max')
 func (col ColumnElem) FullName() string {
-	return fmt.Sprintf(`"%s"."%s"`, col.table.name, col.name)
+	return fmt.Sprintf(`"%s"."%s"`, col.table.Name(), col.name)
 }
 
 // IsInvalid will return true when a column that does not exist was
@@ -92,13 +94,14 @@ func (col ColumnElem) Name() string {
 
 // Modify implements the Modifier interface, allowing the ColumnElem to
 // modify the given TableElem.
-func (col ColumnElem) Modify(table *TableElem) error {
-	if table == nil {
+func (col ColumnElem) Modify(tabular Tabular) error {
+	if tabular == nil || tabular.Table() == nil {
 		return fmt.Errorf(
 			"sol: column %s cannot modify a nil table",
 			col.name,
 		)
 	}
+	table := tabular.Table() // Get the dialect neutral table
 	if err := isValidColumnName(col.name); err != nil {
 		return err
 	}
@@ -107,7 +110,7 @@ func (col ColumnElem) Modify(table *TableElem) error {
 	if col.table != nil {
 		return fmt.Errorf(
 			"sol: column %s already belongs to table %s",
-			col.name, col.table.name,
+			col.name, col.table.Name(),
 		)
 	}
 	col.table = table
@@ -123,8 +126,9 @@ func (col ColumnElem) Modify(table *TableElem) error {
 	return nil
 }
 
-// Table returns the column's TableElem
-func (col ColumnElem) Table() *TableElem {
+// Table returns the column's Table
+func (col ColumnElem) Table() Tabular {
+	// TODO should it return Tabular of *TableElem
 	return col.table
 }
 
@@ -308,10 +312,12 @@ func Column(name string, datatype types.Type) ColumnElem {
 	}
 }
 
-func InvalidColumn(name string, table *TableElem) ColumnElem {
-	return ColumnElem{
-		name:    name,
-		table:   table,
-		invalid: true,
+// InvalidColumn creates an invalid ColumnElem
+func InvalidColumn(name string, tabular Tabular) (column ColumnElem) {
+	column.invalid = true
+	column.name = name
+	if tabular != nil {
+		column.table = tabular.Table()
 	}
+	return
 }

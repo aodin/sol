@@ -33,7 +33,11 @@ func (pk PKArray) Has(name string) bool {
 
 // Modify implements the TableModifier interface. It confirms that every column
 // given exists in the parent table.
-func (pk PKArray) Modify(table *TableElem) error {
+func (pk PKArray) Modify(tabular Tabular) error {
+	if tabular == nil || tabular.Table() == nil {
+		return fmt.Errorf("sol: primary keys cannot modify a nil table")
+	}
+	table := tabular.Table() // Get the dialect neutral table
 	for _, col := range pk {
 		if !table.Has(col) {
 			return fmt.Errorf(

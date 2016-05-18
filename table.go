@@ -7,10 +7,19 @@ import (
 	"github.com/aodin/sol/types"
 )
 
+// Tabular is the interface that all dialects of SQL table must implement
 type Tabular interface {
+	Selectable
 	Name() string
+	// TODO There are two choices for neutral SQL element interfaces:
+	// 1. Require the interface to return the neutral implementation
+	// 2. Enumerate all the methods an implmentation would require
+	// For now, Tabular uses (1) and Columnar uses (2) - this should
+	// be standardized
+	Table() *TableElem
 }
 
+// TableElem is a dialect neutral implementation of a SQL table
 type TableElem struct {
 	name         string
 	alias        string
@@ -21,6 +30,8 @@ type TableElem struct {
 	referencedBy []FKElem // Foreign keys that reference this table
 	creates      []types.Type
 }
+
+var _ Tabular = &TableElem{}
 
 // Column returns the column as a ColumnElem. If the column does not exist
 // it will return the ColumnElem in an invalid state that will be used to
@@ -103,13 +114,18 @@ func (table *TableElem) Select(selections ...Selectable) (stmt SelectStmt) {
 	return SelectTable(table, selections...)
 }
 
+// Table returns the table itself
+func (table *TableElem) Table() *TableElem {
+	return table
+}
+
 // Update is an alias for Update(table). It will create an UPDATE statement
 // for the entire table. Specify the update values with the method Values().
 func (table *TableElem) Update() UpdateStmt {
 	return Update(table)
 }
 
-// Table creates a new table element. It will panic on any errors.
+// Table creates a new dialect netural table. It will panic on any errors.
 func Table(name string, modifiers ...Modifier) *TableElem {
 	if err := isValidTableName(name); err != nil {
 		log.Panic(err)

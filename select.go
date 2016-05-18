@@ -16,7 +16,7 @@ type Selectable interface {
 // SelectStmt is the internal representation of an SQL SELECT statement.
 type SelectStmt struct {
 	ConditionalStmt
-	tables     []*TableElem
+	tables     []Tabular
 	columns    []Columnar
 	joins      []JoinClause
 	groupBy    []Columnar
@@ -146,6 +146,12 @@ func (stmt SelectStmt) hasTable(name string) bool {
 	return false
 }
 
+// From manually specifies the SelectStmt's FROM clause
+func (stmt SelectStmt) From(tables ...Tabular) SelectStmt {
+	stmt.tables = tables
+	return stmt
+}
+
 // All removes the DISTINCT clause from the SELECT statement.
 func (stmt SelectStmt) All() SelectStmt {
 	stmt.isDistinct = false
@@ -273,11 +279,11 @@ func (stmt SelectStmt) Offset(offset int) SelectStmt {
 // columns. Any additional selections will not have their table added to
 // the SelectStmt's tables field - they must be added manually or through
 // a join. To perform selections using cartesian logic, use Select() instead.
-func SelectTable(table *TableElem, selects ...Selectable) (stmt SelectStmt) {
-	stmt.tables = []*TableElem{table}
+func SelectTable(table Tabular, selects ...Selectable) (stmt SelectStmt) {
+	stmt.tables = []Tabular{table}
 
 	// Add the columns from the alias
-	stmt.columns = table.columns.order
+	stmt.columns = table.Columns()
 
 	// Add any additional selections
 	for _, selection := range selects {
