@@ -139,14 +139,23 @@ func (tx *transaction) Begin() (TX, error) {
 // Close will commit the transaction unless it has failed
 func (tx *transaction) Close() (err error) {
 	if tx.successful {
-		err = tx.Commit()
+		err = tx.Tx.Commit()
 	} else {
-		err = tx.Rollback()
+		err = tx.Tx.Rollback()
 	}
 	if tx.panicky && err != nil {
 		log.Panic(err)
 	}
 	return
+}
+
+// Commit will attempt to commit the transaction
+func (tx *transaction) Commit() error {
+	err := tx.Tx.Commit()
+	if tx.panicky && err != nil {
+		log.Panic(err)
+	}
+	return err
 }
 
 // IsSuccessful will mark the transaction as successful, changing
@@ -159,6 +168,15 @@ func (tx *transaction) IsSuccessful() {
 func (tx *transaction) Query(stmt Executable, dest ...interface{}) error {
 	err := perform(tx.Tx, tx.dialect, stmt, dest...)
 	if tx.panicky && err != nil && err != sql.ErrNoRows {
+		log.Panic(err)
+	}
+	return err
+}
+
+// Rollback will attempt to roll back the transaction
+func (tx *transaction) Rollback() error {
+	err := tx.Tx.Rollback()
+	if tx.panicky && err != nil {
 		log.Panic(err)
 	}
 	return err

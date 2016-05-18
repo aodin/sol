@@ -184,9 +184,19 @@ func TestSqlite3_Transaction(t *testing.T) {
 		// A non-pointer receiver will error, and with Must(), will panic
 		panicTx.Query(things.Select(), fifth)
 	})
+	panicTx.Rollback()
 
 	// A valid transaction will still commit
+	panicTx, _ = conn.Must().Begin()
 	var one thing
 	panicTx.Query(things.Select(), &one)
 	assert.NotEqual(t, "", one.Name)
+	panicTx.Rollback()
+
+	// Errors on rollback and commit will panic
+	panicTx, _ = conn.Must().Begin()
+	assert.Panics(t, func() {
+		panicTx.Rollback()
+		panicTx.Rollback()
+	})
 }
