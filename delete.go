@@ -49,11 +49,11 @@ func (stmt DeleteStmt) Where(clauses ...Clause) DeleteStmt {
 }
 
 // Delete creates a DELETE statement for the given table.
-func Delete(table *TableElem, clauses ...Clause) (stmt DeleteStmt) {
+func Delete(table *TableElem) (stmt DeleteStmt) {
 	if table == nil {
 		stmt.AddMeta("sol: attempting to DELETE a nil table")
 		return
 	}
 	stmt.table = table
-	return stmt.Where(clauses...)
+	return
 }

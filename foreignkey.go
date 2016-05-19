@@ -95,7 +95,8 @@ func (fk FKElem) Modify(tabular Tabular) error {
 	}
 
 	// Add the column to the table
-	if err := table.columns.add(col); err != nil {
+	var err error
+	if table.columns, err = table.columns.Add(col); err != nil {
 		return err
 	}
 

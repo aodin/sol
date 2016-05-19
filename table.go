@@ -23,7 +23,7 @@ type Tabular interface {
 type TableElem struct {
 	name         string
 	alias        string
-	columns      Columns
+	columns      ColumnSet
 	pk           PKArray // Table's primary key
 	uniques      []UniqueArray
 	fks          []FKElem // This table's foreign keys
@@ -37,14 +37,13 @@ var _ Tabular = &TableElem{}
 // it will return the ColumnElem in an invalid state that will be used to
 // construct an error message
 func (table TableElem) Column(name string) ColumnElem {
-	if table.Has(name) {
-		switch elem := table.GetColumn(name).(type) {
-		case ColumnElem:
-			return elem
-		}
-		// TODO invalid column?
+	col := table.columns.Get(name)
+	// If the column is invalid add the current table in order
+	// to construct a better error message
+	if col.IsInvalid() {
+		col.table = &table
 	}
-	return InvalidColumn(name, &table)
+	return col
 }
 
 // C is an alias for Column
@@ -54,7 +53,7 @@ func (table TableElem) C(name string) ColumnElem {
 
 // Columns returns all the table columns in the original schema order
 func (table TableElem) Columns() []ColumnElem {
-	return table.columns.order
+	return table.columns.All()
 }
 
 // Create generates the table's CREATE statement.
@@ -63,10 +62,9 @@ func (table *TableElem) Create() CreateStmt {
 }
 
 // Delete is an alias for Delete(table). It will generate a DELETE statement
-// for the entire table. Conditionals joined with AND can be passed as
-// parameters or later added with the Where() method
-func (table *TableElem) Delete(clauses ...Clause) DeleteStmt {
-	return Delete(table, clauses...)
+// for the entire table
+func (table *TableElem) Delete() DeleteStmt {
+	return Delete(table)
 }
 
 // Create generates the table's DROP statement.
@@ -77,10 +75,6 @@ func (table *TableElem) Drop() DropStmt {
 // ForeignKeys returns the table's foreign keys
 func (table *TableElem) ForeignKeys() []FKElem {
 	return table.fks
-}
-
-func (table TableElem) GetColumn(name string) Columnar {
-	return table.columns.Get(name)
 }
 
 // Has returns true if the column exists in this table
@@ -132,7 +126,7 @@ func Table(name string, modifiers ...Modifier) *TableElem {
 	}
 	table := &TableElem{
 		name:    name,
-		columns: Columns{c: make(map[string]ColumnElem)}, // TODO ColumnMap
+		columns: UniqueColumns(),
 	}
 	for _, modifier := range modifiers {
 		if err := modifier.Modify(table); err != nil {

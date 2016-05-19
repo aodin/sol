@@ -29,7 +29,7 @@ type ColumnElem struct {
 	alias     string
 	table     *TableElem
 	datatype  types.Type
-	invalid   bool
+	invalid   bool // columns will be assumed valid until otherwise proven
 }
 
 var _ Columnar = ColumnElem{}
@@ -94,6 +94,12 @@ func (col ColumnElem) IsInvalid() bool {
 	return col.invalid
 }
 
+// IsValid returns true unless the column has been marked invalid. It
+// may be a false positive.
+func (col ColumnElem) IsValid() bool {
+	return !col.IsInvalid()
+}
+
 // Name returns the name of the column - unescaped and without an alias
 func (col ColumnElem) Name() string {
 	return fmt.Sprintf(`%s`, col.name)
@@ -123,7 +129,8 @@ func (col ColumnElem) Modify(tabular Tabular) error {
 	col.table = table
 
 	// Add the column to the table
-	if err := table.columns.add(col); err != nil {
+	var err error
+	if table.columns, err = table.columns.Add(col); err != nil {
 		return err
 	}
 

@@ -13,18 +13,10 @@ type TableElem struct {
 var _ sol.Tabular = &TableElem{}
 
 // Column will return a postgres specific ColumnElem rather than a generic
-// ColumnElem
+// ColumnElem. It is assumed that all columns belonging to postgres
+// table are postgres columns
 func (table TableElem) Column(name string) ColumnElem {
-	if table.Has(name) {
-		switch elem := table.GetColumn(name).(type) {
-		case ColumnElem:
-			return elem
-		case sol.ColumnElem:
-			return ColumnElem{ColumnElem: elem}
-		}
-		// TODO invalid column? Prevent the mixing of column types?
-	}
-	return ColumnElem{ColumnElem: sol.InvalidColumn(name, table)}
+	return ColumnElem{ColumnElem: table.TableElem.Column(name)}
 }
 
 // C is an alias for Column
