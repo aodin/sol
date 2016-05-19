@@ -17,13 +17,13 @@ type Selectable interface {
 type SelectStmt struct {
 	ConditionalStmt
 	tables     []Tabular
-	columns    []ColumnElem // TODO Columns
+	columns    ColumnSet
 	joins      []JoinClause
-	groupBy    []ColumnElem // TODO Columns
+	groupBy    ColumnSet
 	having     Clause
 	orderBy    []OrderedColumn
 	isDistinct bool
-	distincts  []ColumnElem // TODO Columns
+	distincts  ColumnSet
 	limit      int
 	offset     int
 }
@@ -34,20 +34,7 @@ func (stmt SelectStmt) String() string {
 	return compiled
 }
 
-// TODO where should this function live? Also used in postgres.InsertStmt
-func CompileColumns(columns []ColumnElem) []string {
-	names := make([]string, len(columns))
-	for i, col := range columns {
-		// Ignore dialect, parameters and error?
-		compiled, _ := col.Compile(nil, nil)
-		if col.Alias() != "" {
-			compiled += fmt.Sprintf(` AS "%s"`, col.Alias())
-		}
-		names[i] = compiled
-	}
-	return names
-}
-
+// TODO create a TableSet type?
 func (stmt SelectStmt) compileTables() []string {
 	names := make([]string, len(stmt.tables))
 	for i, table := range stmt.tables {
@@ -63,24 +50,22 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	compiled := "SELECT"
 
-	// DISTINCT
 	if stmt.isDistinct {
 		compiled += " DISTINCT"
-		if len(stmt.distincts) > 0 {
-			distincts := make([]string, len(stmt.distincts))
-			for i, col := range stmt.distincts {
-				distincts[i] = fmt.Sprintf(`%s`, col.FullName())
-			}
+		if stmt.distincts.Exists() {
 			compiled += fmt.Sprintf(
-				" ON (%s)", strings.Join(distincts, ", "),
+				" ON (%s)", strings.Join(stmt.distincts.Names(), ", "),
 			)
 		}
 	}
 
+	selections, err := stmt.columns.Compile(d, ps)
+	if err != nil {
+		return "", nil
+	}
+
 	compiled += fmt.Sprintf(
-		" %s FROM %s",
-		strings.Join(CompileColumns(stmt.columns), ", "),
-		strings.Join(stmt.compileTables(), ", "),
+		" %s FROM %s", selections, strings.Join(stmt.compileTables(), ", "),
 	)
 
 	if len(stmt.joins) > 0 {
@@ -101,16 +86,12 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		compiled += fmt.Sprintf(" WHERE %s", conditional)
 	}
 
-	// GROUP BY ...
-	if len(stmt.groupBy) > 0 {
-		groupBy := make([]string, len(stmt.groupBy))
-		for i, col := range stmt.groupBy {
-			groupBy[i] = fmt.Sprintf(`%s`, col.FullName())
-		}
-		compiled += fmt.Sprintf(" GROUP BY %s", strings.Join(groupBy, ", "))
+	if stmt.groupBy.Exists() {
+		compiled += fmt.Sprintf(
+			" GROUP BY %s", strings.Join(stmt.groupBy.Names(), ", "),
+		)
 	}
 
-	//  HAVING
 	if stmt.having != nil {
 		conditional, err := stmt.having.Compile(d, ps)
 		if err != nil {
@@ -155,7 +136,7 @@ func (stmt SelectStmt) From(tables ...Tabular) SelectStmt {
 // All removes the DISTINCT clause from the SELECT statement.
 func (stmt SelectStmt) All() SelectStmt {
 	stmt.isDistinct = false
-	stmt.distincts = nil
+	stmt.distincts = Columns() // reset
 	return stmt
 }
 
@@ -163,10 +144,8 @@ func (stmt SelectStmt) All() SelectStmt {
 // column are provided, the clause will be compiled as a DISTINCT ON.
 func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
 	stmt.isDistinct = true
-	// TODO ColumnMap method
-	for _, column := range columns {
-		stmt.distincts = append(stmt.distincts, column.Column())
-	}
+	// Since the ColumnSet is not unique, any errors can be ignored
+	stmt.distincts, _ = stmt.distincts.Add(columns...)
 	return stmt
 }
 
@@ -231,9 +210,8 @@ func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
 // is allowed per statement. Additional calls to GroupBy will overwrite the
 // existing GROUP BY clause.
 func (stmt SelectStmt) GroupBy(columns ...Columnar) SelectStmt {
-	for _, column := range columns {
-		stmt.groupBy = append(stmt.groupBy, column.Column())
-	}
+	// Since the ColumnSet is not unique, any errors can be ignored
+	stmt.groupBy, _ = stmt.groupBy.Add(columns...)
 	return stmt
 }
 
@@ -287,8 +265,8 @@ func (stmt SelectStmt) Offset(offset int) SelectStmt {
 func SelectTable(table Tabular, selects ...Selectable) (stmt SelectStmt) {
 	stmt.tables = []Tabular{table}
 
-	// Add the columns from the alias
-	stmt.columns = table.Columns()
+	// Add the columns from the initial table
+	stmt.columns = Columns(table.Columns()...)
 
 	// Add any additional selections
 	for _, selection := range selects {
@@ -296,15 +274,16 @@ func SelectTable(table Tabular, selects ...Selectable) (stmt SelectStmt) {
 			stmt.AddMeta("sol: received a nil selectable in SelectTable()")
 			return
 		}
-		stmt.columns = append(stmt.columns, selection.Columns()...)
-	}
-
-	for _, column := range stmt.columns {
-		if column.IsInvalid() {
-			stmt.AddMeta(
-				"sol: the column %s does not exist", column.FullName(),
-			)
-			return
+		for _, column := range selection.Columns() {
+			if column.IsInvalid() {
+				stmt.AddMeta(
+					"sol: cannot select invalid column %s", column.FullName(),
+				)
+				return
+			}
+			// Since selections do not need to be unique, any errors
+			// from the ColumnSet can be ignored
+			stmt.columns, _ = stmt.columns.Add(column)
 		}
 	}
 	return
@@ -333,7 +312,9 @@ func Select(selections ...Selectable) (stmt SelectStmt) {
 			)
 			return
 		}
-		stmt.columns = append(stmt.columns, column)
+		// Since selections do not need to be unique, any errors
+		// from the ColumnSet can be ignored
+		stmt.columns, _ = stmt.columns.Add(column)
 
 		// Add the table to the stmt tables if it does not already exist
 		if !stmt.hasTable(column.Table().Name()) {

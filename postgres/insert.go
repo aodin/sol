@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/aodin/sol"
 	"github.com/aodin/sol/dialect"
@@ -16,7 +15,7 @@ type InsertStmt struct {
 	conflictTargets []string
 	values          sol.Values
 	where           sol.Clause
-	returning       []sol.ColumnElem // TODO ColumnMap
+	returning       sol.ColumnSet
 }
 
 // String outputs the parameter-less INSERT ... RETURNING statement in the
@@ -58,11 +57,12 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *sol.Parameters) (string, e
 		}
 	}
 
-	if len(stmt.returning) > 0 {
-		compiled += fmt.Sprintf(
-			" RETURNING %s",
-			strings.Join(sol.CompileColumns(stmt.returning), ", "),
-		)
+	if stmt.returning.Exists() {
+		selections, err := stmt.returning.Compile(d, ps)
+		if err != nil {
+			return "", err
+		}
+		compiled += fmt.Sprintf(" RETURNING %s", selections)
 	}
 	return compiled, nil
 }
@@ -123,9 +123,9 @@ func (stmt InsertStmt) Returning(selections ...sol.Selectable) InsertStmt {
 	// http://www.postgresql.org/docs/devel/static/sql-insert.html
 
 	// If no selections were provided, default to the table
-	if len(selections) == 0 {
+	if len(selections) == 0 && stmt.Table() != nil {
 		for _, column := range stmt.Table().Columns() {
-			stmt.returning = append(stmt.returning, column)
+			stmt.returning, _ = stmt.returning.Add(column)
 		}
 		return stmt
 	}
@@ -148,7 +148,7 @@ func (stmt InsertStmt) Returning(selections ...sol.Selectable) InsertStmt {
 				)
 				break
 			}
-			stmt.returning = append(stmt.returning, column)
+			stmt.returning, _ = stmt.returning.Add(column)
 		}
 	}
 	return stmt
