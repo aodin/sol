@@ -10,20 +10,20 @@ import (
 // Selectable is an interface that allows both tables and columns to be
 // selected. It is implemented by TableElem and ColumnElem.
 type Selectable interface {
-	Columns() []Columnar
+	Columns() []ColumnElem
 }
 
 // SelectStmt is the internal representation of an SQL SELECT statement.
 type SelectStmt struct {
 	ConditionalStmt
 	tables     []Tabular
-	columns    []Columnar
+	columns    []ColumnElem // TODO Columns
 	joins      []JoinClause
-	groupBy    []Columnar
+	groupBy    []ColumnElem // TODO Columns
 	having     Clause
 	orderBy    []OrderedColumn
 	isDistinct bool
-	distincts  []Columnar
+	distincts  []ColumnElem // TODO Columns
 	limit      int
 	offset     int
 }
@@ -35,7 +35,7 @@ func (stmt SelectStmt) String() string {
 }
 
 // TODO where should this function live? Also used in postgres.InsertStmt
-func CompileColumns(columns []Columnar) []string {
+func CompileColumns(columns []ColumnElem) []string {
 	names := make([]string, len(columns))
 	for i, col := range columns {
 		// Ignore dialect, parameters and error?
@@ -163,7 +163,10 @@ func (stmt SelectStmt) All() SelectStmt {
 // column are provided, the clause will be compiled as a DISTINCT ON.
 func (stmt SelectStmt) Distinct(columns ...Columnar) SelectStmt {
 	stmt.isDistinct = true
-	stmt.distincts = columns
+	// TODO ColumnMap method
+	for _, column := range columns {
+		stmt.distincts = append(stmt.distincts, column.Column())
+	}
 	return stmt
 }
 
@@ -228,7 +231,9 @@ func (stmt SelectStmt) Where(conditions ...Clause) SelectStmt {
 // is allowed per statement. Additional calls to GroupBy will overwrite the
 // existing GROUP BY clause.
 func (stmt SelectStmt) GroupBy(columns ...Columnar) SelectStmt {
-	stmt.groupBy = columns
+	for _, column := range columns {
+		stmt.groupBy = append(stmt.groupBy, column.Column())
+	}
 	return stmt
 }
 
@@ -307,7 +312,7 @@ func SelectTable(table Tabular, selects ...Selectable) (stmt SelectStmt) {
 
 // Select generates a new SELECT statement from the given columns and tables.
 func Select(selections ...Selectable) (stmt SelectStmt) {
-	columns := make([]Columnar, 0)
+	columns := []ColumnElem{}
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: received a nil selectable in Select()")

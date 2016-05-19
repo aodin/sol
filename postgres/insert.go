@@ -16,7 +16,7 @@ type InsertStmt struct {
 	conflictTargets []string
 	values          sol.Values
 	where           sol.Clause
-	returning       []sol.Columnar
+	returning       []sol.ColumnElem // TODO ColumnMap
 }
 
 // String outputs the parameter-less INSERT ... RETURNING statement in the

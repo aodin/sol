@@ -21,7 +21,7 @@ var (
 type InsertStmt struct {
 	Stmt
 	table   Tabular
-	columns []Columnar
+	columns []ColumnElem // TODO Columns
 	args    []interface{}
 	fields  fields
 }
@@ -343,7 +343,8 @@ func isEmptyValue(v reflect.Value) bool {
 }
 
 // TODO error if there was no match?
-func removeColumn(columns []Columnar, name string) []Columnar {
+// TODO should be a method of ColumnMap
+func removeColumn(columns []ColumnElem, name string) []ColumnElem {
 	for i, col := range columns {
 		if col.Name() == name {
 			return append(columns[:i], columns[i+1:]...)
@@ -373,7 +374,7 @@ func valuesMap(stmt InsertStmt, values Values) (fields, error) {
 // Insert creates an INSERT statement for the given columns. There must be at
 // least one column and all columns must belong to the same table.
 func Insert(selections ...Selectable) (stmt InsertStmt) {
-	var columns []Columnar
+	var columns []ColumnElem
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: INSERT received a nil selectable - do the columns or tables you selected exist?")

@@ -8,17 +8,18 @@ import (
 	"github.com/aodin/sol/types"
 )
 
+// Tabular is the interface that all dialects of a SQL column must implement
 type Columnar interface {
+	// Two methods for neutral SQL element interfaces:
+	// (1) Require the interface to return the neutral implementation
+	// (2) Enumerate all the methods an implmentation would require
+	// Columnar and Tabular both use method (1)
+	// Name has been left as a legacy shortcut but may be removed
 	Compiles
 	Selectable
-	AddOperator(string) ColumnElem // TODO or Columnar?
-	Alias() string
-	As(string) Columnar
-	FullName() string
-	IsInvalid() bool
 	Name() string
-	Table() Tabular
-	Type() types.Type
+	Column() ColumnElem
+	Table() *TableElem
 }
 
 // ColumnElem is a dialect neutral implementation of a SQL column
@@ -43,16 +44,22 @@ func (col ColumnElem) Alias() string {
 	return col.alias
 }
 
-// As sets an alias for this ColumnElem
-func (col ColumnElem) As(alias string) Columnar {
+// As sets an alias and returns a copy of the ColumnElem
+func (col ColumnElem) As(alias string) ColumnElem {
 	col.alias = alias
+	return col
+}
+
+// Column returns a copy of its receiver Column. This method implements
+// the Columnar interface.
+func (col ColumnElem) Column() ColumnElem {
 	return col
 }
 
 // Columns returns the ColumnElem itself in a slice of ColumnElem. This
 // method implements the Selectable interface.
-func (col ColumnElem) Columns() []Columnar {
-	return []Columnar{col}
+func (col ColumnElem) Columns() []ColumnElem {
+	return []ColumnElem{col}
 }
 
 // Compile produces the dialect specific SQL and adds any parameters
@@ -127,8 +134,7 @@ func (col ColumnElem) Modify(tabular Tabular) error {
 }
 
 // Table returns the column's Table
-func (col ColumnElem) Table() Tabular {
-	// TODO should it return Tabular of *TableElem
+func (col ColumnElem) Table() *TableElem {
 	return col.table
 }
 

@@ -26,7 +26,7 @@ var _ types.Type = FKElem{}
 // types.Type interface so it can be used in CREATE TABLE statements.
 type FKElem struct {
 	name       string
-	col        Columnar
+	col        ColumnElem
 	datatype   types.Type
 	table      *TableElem // the parent table of the key
 	references *TableElem // the table the key references
@@ -125,54 +125,40 @@ func (fk FKElem) OnUpdate(b fkAction) FKElem {
 
 // ForeignKey creates a FKElem from the given name and column/table.
 // If given a column, it must already have its table assigned.
+// If given a table, it must have one and only one primary key
 func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
-	var col Columnar
-	var table *TableElem
 	if fk == nil {
 		log.Panic("sol: inline foreign key was given a nil Selectable")
 	}
-	columns := fk.Columns()
 
-	// TODO use a switch with a fallthrough to fix repeated logic?
-	if len(columns) == 0 {
-		log.Panic(
-			"sol: inline foreign key Selectable must have at least one column",
-		)
-	} else if len(columns) == 1 {
-		col = columns[0]
-		if col.Table() == nil || col.Table().Table() == nil {
-			log.Panic(
-				"sol: inline foreign key columns must have their table assigned before creation",
-			)
-		}
-		table = col.Table().Table()
-	} else {
-		// Simply use the table of the first column
-		// TODO This is a strange decision that will error silently
-		// It also needs to call Table() twice to get the dialect neutral
-		// table implementation
-		if columns[0].Table() == nil || columns[0].Table().Table() == nil {
-			log.Panic(
-				"sol: inline foreign key columns must have their table assigned before creation",
-			)
-		}
-		table = columns[0].Table().Table()
-		pk := table.PrimaryKey()
+	var col ColumnElem
+	switch t := fk.(type) {
+	case Columnar:
+		col = t.Column()
+	case Tabular:
+		// If the given Selectable was a Table - use its primary key
+		// TODO Can foreign keys reference multiple columns?
+		pk := t.Table().PrimaryKey()
 		if len(pk) != 1 {
 			log.Panic(
-				"sol: inline foreign key tables must have one and only one primary key column",
+				"sol: a table used directly in ForeignKey must have one and only one primary key column",
 			)
 		}
-		col = table.C(pk[0])
+		col = t.Table().C(pk[0])
+	default:
+		log.Panicf("sol: unknown Selectable %T used in ForeignKey", t)
 	}
 
-	if col.IsInvalid() {
-		log.Panic("sol: referenced column does not exist")
+	if col.Table() == nil {
+		log.Panic(
+			"sol: a column must have a table before being used in ForeignKey",
+		)
 	}
 
 	// Allow an overriding datatype
 	datatype := col.Type()
 	if len(datatypes) > 0 {
+		// TODO what should happen if multiple datatypes are given?
 		datatype = datatypes[0]
 	}
 
@@ -180,7 +166,7 @@ func ForeignKey(name string, fk Selectable, datatypes ...types.Type) FKElem {
 		name:       name,
 		col:        col,
 		datatype:   datatype,
-		references: table,
+		references: col.Table(),
 	}
 }
 

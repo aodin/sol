@@ -10,6 +10,8 @@ type TableElem struct {
 	*sol.TableElem
 }
 
+var _ sol.Tabular = &TableElem{}
+
 // Column will return a postgres specific ColumnElem rather than a generic
 // ColumnElem
 func (table TableElem) Column(name string) ColumnElem {
@@ -22,7 +24,7 @@ func (table TableElem) Column(name string) ColumnElem {
 		}
 		// TODO invalid column? Prevent the mixing of column types?
 	}
-	return ColumnElem{ColumnElem: sol.InvalidColumn(name, table.TableElem)}
+	return ColumnElem{ColumnElem: sol.InvalidColumn(name, table)}
 }
 
 // C is an alias for Column

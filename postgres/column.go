@@ -20,9 +20,12 @@ const (
 	Difference                = "-"
 )
 
+// ColumnElem is the postgres dialect's implementation of a SQL column
 type ColumnElem struct {
 	sol.ColumnElem
 }
+
+var _ sol.Columnar = ColumnElem{}
 
 func (col ColumnElem) operator(op string, param interface{}) sol.BinaryClause {
 	return sol.BinaryClause{

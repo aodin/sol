@@ -7,15 +7,15 @@ import (
 	"github.com/aodin/sol/types"
 )
 
-// Tabular is the interface that all dialects of SQL table must implement
+// Tabular is the interface that all dialects of a SQL table must implement
 type Tabular interface {
+	// Two methods for neutral SQL element interfaces:
+	// (1) Require the interface to return the neutral implementation
+	// (2) Enumerate all the methods an implmentation would require
+	// Columnar and Tabular both use method (1)
+	// Name has been left as a legacy shortcut but may be removed
 	Selectable
 	Name() string
-	// TODO There are two choices for neutral SQL element interfaces:
-	// 1. Require the interface to return the neutral implementation
-	// 2. Enumerate all the methods an implmentation would require
-	// For now, Tabular uses (1) and Columnar uses (2) - this should
-	// be standardized
 	Table() *TableElem
 }
 
@@ -53,7 +53,7 @@ func (table TableElem) C(name string) ColumnElem {
 }
 
 // Columns returns all the table columns in the original schema order
-func (table TableElem) Columns() []Columnar {
+func (table TableElem) Columns() []ColumnElem {
 	return table.columns.order
 }
 
@@ -132,7 +132,7 @@ func Table(name string, modifiers ...Modifier) *TableElem {
 	}
 	table := &TableElem{
 		name:    name,
-		columns: Columns{c: make(map[string]Columnar)},
+		columns: Columns{c: make(map[string]ColumnElem)}, // TODO ColumnMap
 	}
 	for _, modifier := range modifiers {
 		if err := modifier.Modify(table); err != nil {

@@ -1,7 +1,7 @@
 package sol
 
 func Function(name string, col Columnar) ColumnElem {
-	return col.AddOperator(name)
+	return col.Column().AddOperator(name)
 }
 
 func Avg(expression Columnar) ColumnElem {
