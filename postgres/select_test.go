@@ -11,7 +11,6 @@ func TestSelect(t *testing.T) {
 
 	// Build a GROUP BY statement using an aggregate
 	expect.SQL(
-		`SELECT "things"."name", max("things"."created_at") FROM "things" GROUP BY "things"."name" ORDER BY max("things"."created_at") DESC`,
 		sol.Select(
 			things.C("name"),
 			sol.Max(things.C("created_at")),
@@ -20,5 +19,6 @@ func TestSelect(t *testing.T) {
 		).OrderBy(
 			sol.Max(things.C("created_at")).Desc(),
 		),
+		`SELECT things.name, MAX(things.created_at) FROM things GROUP BY things.name ORDER BY MAX(things.created_at) DESC`,
 	)
 }

@@ -16,7 +16,7 @@ type PKArray []string
 func (pk PKArray) Create(d dialect.Dialect) (string, error) {
 	cols := make([]string, len(pk))
 	for i, col := range pk {
-		cols[i] = fmt.Sprintf(`"%s"`, col)
+		cols[i] = col
 	}
 	return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(cols, ", ")), nil
 }

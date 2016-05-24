@@ -42,7 +42,7 @@ func (fk FKElem) Create(d dialect.Dialect) (string, error) {
 		return "", err
 	}
 	compiled := fmt.Sprintf(
-		`"%s" %s REFERENCES %s("%s")`,
+		`%s %s REFERENCES %s(%s)`,
 		fk.name,
 		ct,
 		fk.col.Table().Name(),

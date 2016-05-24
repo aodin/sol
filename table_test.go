@@ -35,7 +35,7 @@ func TestTable_Select(t *testing.T) {
 
 	// Select statements without destination structs
 	expect.SQL(
-		`SELECT "users"."id", "users"."email", "users"."name", "users"."password", "users"."created_at" FROM "users"`,
 		users.Select(),
+		`SELECT users.id, users.email, users.name, users.password, users.created_at FROM users`,
 	)
 }

@@ -38,7 +38,7 @@ func (stmt SelectStmt) String() string {
 func (stmt SelectStmt) compileTables() []string {
 	names := make([]string, len(stmt.tables))
 	for i, table := range stmt.tables {
-		names[i] = fmt.Sprintf(`"%s"`, table.Name())
+		names[i] = table.Name()
 	}
 	return names
 }

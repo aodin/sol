@@ -137,11 +137,11 @@ func TestPostGres_Create(t *testing.T) {
 	expect := sql.NewTester(t, &PostGres{})
 
 	expect.SQL(
-		`CREATE TABLE "items_fk" (
-  "id" INTEGER NOT NULL REFERENCES items_b("id"),
-  "name" VARCHAR
-);`,
 		itemsFK.Create(),
+		`CREATE TABLE items_fk (
+  id INTEGER NOT NULL REFERENCES items_b(id),
+  name VARCHAR
+);`,
 	)
 }
 

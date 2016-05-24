@@ -7,19 +7,22 @@ func TestOrder(t *testing.T) {
 
 	// Asc is implied
 	ord := OrderedColumn{inner: users.C("id")}
-	expect.SQL(`"users"."id"`, ord)
+	expect.SQL(ord, `users.id`)
 
 	// Desc
-	expect.SQL(`"users"."id" DESC`, ord.Desc())
+	expect.SQL(ord.Desc(), `users.id DESC`)
 
 	// Desc, nulls first
 	expect.SQL(
-		`"users"."id" DESC NULLS FIRST`,
 		ord.Desc().NullsFirst(),
+		`users.id DESC NULLS FIRST`,
 	)
 
 	// Asc, Nulls last
-	expect.SQL(`"users"."id" NULLS LAST`, ord.Asc().NullsLast())
+	expect.SQL(
+		ord.Asc().NullsLast(),
+		`users.id NULLS LAST`,
+	)
 
 	// Calling Orderable on an OrderableColumn should return a copy of itself
 	if ord.inner.Name() != ord.Orderable().inner.Name() {

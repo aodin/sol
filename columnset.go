@@ -98,7 +98,7 @@ func (set ColumnSet) IsEmpty() bool {
 func (set ColumnSet) Names() []string {
 	names := make([]string, len(set.order))
 	for i, col := range set.order {
-		names[i] = fmt.Sprintf(`%s`, col.FullName())
+		names[i] = col.FullName()
 	}
 	return names
 }

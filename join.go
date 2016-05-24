@@ -23,13 +23,13 @@ func (j JoinClause) String() string {
 func (j JoinClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	// Ignore clauses if CROSS
 	if j.method == CROSSJOIN {
-		return fmt.Sprintf(`%s "%s"`, CROSSJOIN, j.table.Name()), nil
+		return fmt.Sprintf(`%s %s`, CROSSJOIN, j.table.Name()), nil
 	}
 
 	// If no clauses were given, assume the join is NATURAL
 	if len(j.ArrayClause.clauses) == 0 {
 		return fmt.Sprintf(
-			`NATURAL %s "%s"`, j.method, j.table.Name(),
+			`NATURAL %s %s`, j.method, j.table.Name(),
 		), nil
 	}
 
@@ -41,6 +41,6 @@ func (j JoinClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	}
 
 	return fmt.Sprintf(
-		`%s "%s" ON %s`, j.method, j.table.Name(), clauses,
+		`%s %s ON %s`, j.method, j.table.Name(), clauses,
 	), nil
 }

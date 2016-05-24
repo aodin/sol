@@ -79,13 +79,13 @@ func (col ColumnElem) Create(d dialect.Dialect) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf(`"%s" %s`, col.Name(), compiled), nil
+	return fmt.Sprintf(`%s %s`, col.Name(), compiled), nil
 }
 
 // FullName prefixes the column name with the table name
 // It deos not include opreators (such as 'max')
 func (col ColumnElem) FullName() string {
-	return fmt.Sprintf(`"%s"."%s"`, col.table.Name(), col.name)
+	return fmt.Sprintf(`%s.%s`, col.table.Name(), col.name)
 }
 
 // IsInvalid will return true when a column that does not exist was

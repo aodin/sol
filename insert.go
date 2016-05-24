@@ -54,7 +54,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	columns := make([]string, len(stmt.columns))
 	for i, column := range stmt.columns {
-		columns[i] = fmt.Sprintf(`"%s"`, column.Name())
+		columns[i] = column.Name()
 	}
 
 	// args must be divisable by cols without remainder
@@ -95,7 +95,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	// TODO Bulk insert syntax is dialect specific
 	return fmt.Sprintf(
-		`INSERT INTO "%s" (%s) VALUES %s`,
+		`INSERT INTO %s (%s) VALUES %s`,
 		stmt.table.Name(),
 		strings.Join(columns, ", "),
 		strings.Join(parameters, ", "),

@@ -26,7 +26,7 @@ func (v Values) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		values[i] = fmt.Sprintf(`"%s" = %s`, key, compiledParam)
+		values[i] = fmt.Sprintf(`%s = %s`, key, compiledParam)
 	}
 	return strings.Join(values, ", "), nil
 }

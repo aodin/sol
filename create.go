@@ -59,7 +59,7 @@ func (stmt CreateStmt) Compile(d dialect.Dialect, p *Parameters) (string, error)
 	}
 
 	return fmt.Sprintf(
-		"%s \"%s\" (\n  %s\n);",
+		"%s %s (\n  %s\n);",
 		name,
 		stmt.table.Name(),
 		strings.Join(compiled, ",\n  "),

@@ -47,7 +47,7 @@ func (stmt UpdateStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	// Begin building the UPDATE statement
 	compiled := fmt.Sprintf(
-		`UPDATE "%s" SET %s`,
+		`UPDATE %s SET %s`,
 		stmt.table.Name(),
 		compiledValues,
 	)

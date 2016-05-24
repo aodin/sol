@@ -11,27 +11,27 @@ func TestInsert(t *testing.T) {
 
 	// By default, an INSERT without values will assume a single entry
 	expect.SQL(
-		`INSERT INTO "contacts" ("id", "user_id", "key", "value") VALUES ($1, $2, $3, $4)`,
 		contacts.Insert(),
+		`INSERT INTO contacts (id, user_id, key, value) VALUES ($1, $2, $3, $4)`,
 		nil, nil, nil, nil,
 	)
 
 	expect.SQL(
-		`INSERT INTO "users" ("name", "password") VALUES ($1, $2)`,
 		Insert(users.C("name"), users.C("password")),
+		`INSERT INTO users (name, password) VALUES ($1, $2)`,
 		nil, nil,
 	)
 
 	expect.SQL(
-		`INSERT INTO "users" ("email", "name") VALUES ($1, $2)`,
 		users.Insert().Values(user{Name: "admin", Email: "admin@example.com"}),
+		`INSERT INTO users (email, name) VALUES ($1, $2)`,
 		"admin@example.com", "admin",
 	)
 
 	// Use sql.Values
 	expect.SQL(
-		`INSERT INTO "users" ("id", "name") VALUES ($1, $2)`,
 		users.Insert().Values(Values{"id": 1, "name": "user"}),
+		`INSERT INTO users (id, name) VALUES ($1, $2)`,
 		1, "user",
 	)
 }

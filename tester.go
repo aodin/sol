@@ -71,7 +71,7 @@ func (t *tester) Error(stmt Compiles) {
 
 // SQL tests that the given Compiles instance matches the expected string for
 // the current dialect.
-func (t *tester) SQL(expect string, stmt Compiles, ps ...interface{}) {
+func (t *tester) SQL(stmt Compiles, expect string, ps ...interface{}) {
 	// Get caller information in case of failure
 	caller := callerInfo()
 
@@ -87,16 +87,16 @@ func (t *tester) SQL(expect string, stmt Compiles, ps ...interface{}) {
 
 	if expect != actual {
 		t.t.Errorf(
-			"%s: unexpected SQL from Compile(): expect %s, got %s",
+			"%s: unexpected SQL from Compile(): \n - have: %s\n - want: %s",
 			caller,
-			expect,
 			actual,
+			expect,
 		)
 	}
 	// Test that the parameters are equal
 	if len(*params) != len(ps) {
 		t.t.Errorf(
-			"%s: unexpected number of parameters for %s: expect %d, got %d",
+			"%s: unexpected number of parameters for %s: \n - have %d, want %d",
 			caller,
 			actual,
 			len(ps),
@@ -109,11 +109,11 @@ func (t *tester) SQL(expect string, stmt Compiles, ps ...interface{}) {
 	for i, param := range *params {
 		if !ObjectsAreEqual(ps[i], param) {
 			t.t.Errorf(
-				"%s: unequal parameters at index %d: expect %#v, got %#v",
+				"%s: unequal parameters at index %d: \n - have %#v, want %#v",
 				caller,
 				i,
-				ps[i],
 				param,
+				ps[i],
 			)
 		}
 	}

@@ -5,33 +5,33 @@ func Function(name string, col Columnar) ColumnElem {
 }
 
 func Avg(expression Columnar) ColumnElem {
-	return Function("avg", expression)
+	return Function("AVG", expression)
 }
 
 func Count(expression Columnar) ColumnElem {
-	return Function("count", expression)
+	return Function("COUNT", expression)
 }
 
 func Date(expression Columnar) ColumnElem {
-	return Function("date", expression)
+	return Function("DATE", expression)
 }
 
 func Max(expression Columnar) ColumnElem {
-	return Function("max", expression)
+	return Function("MAX", expression)
 }
 
 func Min(expression Columnar) ColumnElem {
-	return Function("min", expression)
+	return Function("MIN", expression)
 }
 
 func StdDev(expression Columnar) ColumnElem {
-	return Function("stddev", expression)
+	return Function("STDDEV", expression)
 }
 
 func Sum(expression Columnar) ColumnElem {
-	return Function("sum", expression)
+	return Function("SUM", expression)
 }
 
 func Variance(expression Columnar) ColumnElem {
-	return Function("variance", expression)
+	return Function("VARIANCE", expression)
 }

@@ -12,30 +12,32 @@ func TestInsert(t *testing.T) {
 
 	// By default, an INSERT without values will assume a single entry
 	expect.SQL(
-		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) RETURNING "meetings"."uuid", "meetings"."time"`,
 		meetings.Insert().Returning(meetings),
+		`INSERT INTO meetings (uuid, time) VALUES ($1, $2) RETURNING meetings.uuid, meetings.time`,
 		nil, nil,
 	)
 
 	// If no parameters are given to Returning(), it will default to the
 	// INSERT statement's table
 	expect.SQL(
-		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) RETURNING "meetings"."uuid", "meetings"."time"`,
 		meetings.Insert().Returning(),
+		`INSERT INTO meetings (uuid, time) VALUES ($1, $2) RETURNING meetings.uuid, meetings.time`,
 		nil, nil,
 	)
 
 	// UPSERT
 	now := time.Now()
 	expect.SQL(
-		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) ON CONFLICT DO UPDATE SET "time" = $3 WHERE "meetings"."time" >= $4`,
-		meetings.Insert().OnConflict().DoUpdate(sol.Values{"time": now}).Where(meetings.C("time").GTE(now)),
+		meetings.Insert().OnConflict().DoUpdate(
+			sol.Values{"time": now},
+		).Where(meetings.C("time").GTE(now)),
+		`INSERT INTO meetings (uuid, time) VALUES ($1, $2) ON CONFLICT DO UPDATE SET time = $3 WHERE meetings.time >= $4`,
 		nil, nil, now, now,
 	)
 
 	expect.SQL(
-		`INSERT INTO "meetings" ("uuid", "time") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		meetings.Insert().OnConflict().DoNothing(),
+		`INSERT INTO meetings (uuid, time) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		nil, nil,
 	)
 

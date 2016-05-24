@@ -18,7 +18,7 @@ var _ Modifier = UniqueArray{}
 func (unique UniqueArray) Create(d dialect.Dialect) (string, error) {
 	columns := make([]string, len(unique))
 	for i, col := range unique {
-		columns[i] = fmt.Sprintf(`"%s"`, col)
+		columns[i] = col
 	}
 	return fmt.Sprintf("UNIQUE (%s)", strings.Join(columns, ", ")), nil
 }

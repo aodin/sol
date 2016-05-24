@@ -23,11 +23,11 @@ func TestText(t *testing.T) {
 	expect := NewTester(t, defaultDialect{})
 
 	expect.SQL(
-		`SELECT * FROM users WHERE id > $1 OR name::varchar LIKE $2`,
 		Text(
 			`SELECT * FROM users WHERE id > :id OR name::varchar LIKE :name`,
 			Values{"name": "A", "id": 2},
 		),
+		`SELECT * FROM users WHERE id > $1 OR name::varchar LIKE $2`,
 		2, "A",
 	)
 

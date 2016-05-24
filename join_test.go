@@ -26,17 +26,16 @@ func TestJoinClause(t *testing.T) {
 	expect := NewTester(t, &defaultDialect{})
 
 	expect.SQL(
-		`SELECT "a"."id", "a"."value" FROM "a" CROSS JOIN "relations"`,
 		Select(tableA).CrossJoin(relations),
+		`SELECT a.id, a.value FROM a CROSS JOIN relations`,
 	)
 
 	expect.SQL(
-		`SELECT "a"."id", "a"."value" FROM "a" NATURAL INNER JOIN "relations"`,
 		Select(tableA).InnerJoin(relations),
+		`SELECT a.id, a.value FROM a NATURAL INNER JOIN relations`,
 	)
 
 	expect.SQL(
-		`SELECT "a"."id", "a"."value" FROM "a" LEFT OUTER JOIN "relations" ON "a"."id" = "relations"."a_id" AND "a"."id" = $1 LEFT OUTER JOIN "b" ON "b"."id" = "relations"."b_id"`,
 		Select(tableA).LeftOuterJoin(
 			relations,
 			tableA.C("id").Equals(relations.C("a_id")),
@@ -45,6 +44,7 @@ func TestJoinClause(t *testing.T) {
 			tableB,
 			tableB.C("id").Equals(relations.C("b_id")),
 		),
+		`SELECT a.id, a.value FROM a LEFT OUTER JOIN relations ON a.id = relations.a_id AND a.id = $1 LEFT OUTER JOIN b ON b.id = relations.b_id`,
 		2,
 	)
 

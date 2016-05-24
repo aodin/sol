@@ -6,12 +6,12 @@ func TestFunctions(t *testing.T) {
 	expect := NewTester(t, &defaultDialect{})
 
 	expect.SQL(
-		`SELECT count("users"."id") FROM "users"`,
 		Select(Count(users.C("id"))),
+		`SELECT COUNT(users.id) FROM users`,
 	)
 
 	expect.SQL(
-		`SELECT count("users"."id") AS "Count" FROM "users"`,
 		Select(Count(users.C("id")).As("Count")),
+		`SELECT COUNT(users.id) AS "Count" FROM users`,
 	)
 }
