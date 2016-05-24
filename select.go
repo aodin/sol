@@ -48,14 +48,15 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		return "", err
 	}
 
-	compiled := "SELECT"
+	// The finished statement will be joined with spaces
+	var compiled = []string{SELECT}
 
 	if stmt.isDistinct {
-		compiled += " DISTINCT"
+		compiled = append(compiled, DISTINCT)
 		if stmt.distincts.Exists() {
-			compiled += fmt.Sprintf(
-				" ON (%s)", strings.Join(stmt.distincts.Names(), ", "),
-			)
+			compiled = append(compiled, fmt.Sprintf(
+				"ON (%s)", strings.Join(stmt.distincts.Names(), ", "),
+			))
 		}
 	}
 
@@ -64,9 +65,8 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		return "", nil
 	}
 
-	compiled += fmt.Sprintf(
-		" %s FROM %s", selections, strings.Join(stmt.compileTables(), ", "),
-	)
+	tables := strings.Join(stmt.compileTables(), ", ") // TODO use compilation?
+	compiled = append(compiled, selections, FROM, tables)
 
 	if len(stmt.joins) > 0 {
 		for _, j := range stmt.joins {
@@ -74,7 +74,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 			if err != nil {
 				return "", err
 			}
-			compiled += jc
+			compiled = append(compiled, jc)
 		}
 	}
 
@@ -83,12 +83,12 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		if err != nil {
 			return "", err
 		}
-		compiled += fmt.Sprintf(" WHERE %s", conditional)
+		compiled = append(compiled, WHERE, conditional)
 	}
 
 	if stmt.groupBy.Exists() {
-		compiled += fmt.Sprintf(
-			" GROUP BY %s", strings.Join(stmt.groupBy.Names(), ", "),
+		compiled = append(
+			compiled, GROUPBY, strings.Join(stmt.groupBy.Names(), ", "),
 		)
 	}
 
@@ -97,7 +97,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		if err != nil {
 			return "", err
 		}
-		compiled += fmt.Sprintf(" HAVING %s", conditional)
+		compiled = append(compiled, HAVING, conditional)
 	}
 
 	if len(stmt.orderBy) > 0 {
@@ -105,17 +105,17 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		for i, ord := range stmt.orderBy {
 			order[i], _ = ord.Compile(d, ps)
 		}
-		compiled += fmt.Sprintf(" ORDER BY %s", strings.Join(order, ", "))
+		compiled = append(compiled, ORDERBY, strings.Join(order, ", "))
 	}
 
 	if stmt.limit != 0 {
-		compiled += fmt.Sprintf(" LIMIT %d", stmt.limit)
+		compiled = append(compiled, LIMIT, fmt.Sprintf("%d", stmt.limit))
 	}
 
 	if stmt.offset != 0 {
-		compiled += fmt.Sprintf(" OFFSET %d", stmt.offset)
+		compiled = append(compiled, OFFSET, fmt.Sprintf("%d", stmt.offset))
 	}
-	return compiled, nil
+	return strings.Join(compiled, " "), nil
 }
 
 func (stmt SelectStmt) hasTable(name string) bool {
@@ -163,31 +163,31 @@ func (stmt SelectStmt) join(table Tabular, method string, clauses ...Clause) Sel
 
 // CrossJoin adds a CROSS JOIN ... clause to the SELECT statement.
 func (stmt SelectStmt) CrossJoin(table Tabular) SelectStmt {
-	return stmt.join(table, "CROSS JOIN")
+	return stmt.join(table, CROSSJOIN)
 }
 
 // InnerJoin adds an INNER JOIN ... ON ... clause to the SELECT statement.
 // If no clauses are given, it will assume the clause is NATURAL.
 func (stmt SelectStmt) InnerJoin(table Tabular, clauses ...Clause) SelectStmt {
-	return stmt.join(table, "INNER JOIN", clauses...)
+	return stmt.join(table, INNERJOIN, clauses...)
 }
 
 // LeftOuterJoin adds a LEFT OUTER JOIN ... ON ... clause to the SELECT
 // statement. If no clauses are given, it will assume the clause is NATURAL.
 func (stmt SelectStmt) LeftOuterJoin(table Tabular, clauses ...Clause) SelectStmt {
-	return stmt.join(table, "LEFT OUTER JOIN", clauses...)
+	return stmt.join(table, LEFTOUTERJOIN, clauses...)
 }
 
 // RightOuterJoin adds a RIGHT OUTER JOIN ... ON ... clause to the SELECT
 // statement. If no clauses are given, it will assume the clause is NATURAL.
 func (stmt SelectStmt) RightOuterJoin(table Tabular, clauses ...Clause) SelectStmt {
-	return stmt.join(table, "RIGHT OUTER JOIN", clauses...)
+	return stmt.join(table, RIGHTOUTERJOIN, clauses...)
 }
 
 // FullOuterJoin adds a FULL OUTER JOIN ... ON ... clause to the SELECT
 // statement. If no clauses are given, it will assume the clause is NATURAL.
 func (stmt SelectStmt) FullOuterJoin(table Tabular, clauses ...Clause) SelectStmt {
-	return stmt.join(table, "FULL OUTER JOIN", clauses...)
+	return stmt.join(table, FULLOUTERJOIN, clauses...)
 }
 
 // Where adds a conditional clause to the SELECT statement. Only one WHERE

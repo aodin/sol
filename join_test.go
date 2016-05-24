@@ -36,11 +36,14 @@ func TestJoinClause(t *testing.T) {
 	)
 
 	expect.SQL(
-		`SELECT "a"."id", "a"."value" FROM "a" LEFT OUTER JOIN "relations" ON "a"."id" = "relations"."a_id" AND "a"."id" = $1`,
+		`SELECT "a"."id", "a"."value" FROM "a" LEFT OUTER JOIN "relations" ON "a"."id" = "relations"."a_id" AND "a"."id" = $1 LEFT OUTER JOIN "b" ON "b"."id" = "relations"."b_id"`,
 		Select(tableA).LeftOuterJoin(
 			relations,
 			tableA.C("id").Equals(relations.C("a_id")),
 			tableA.C("id").Equals(2),
+		).LeftOuterJoin(
+			tableB,
+			tableB.C("id").Equals(relations.C("b_id")),
 		),
 		2,
 	)
