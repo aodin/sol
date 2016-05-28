@@ -157,11 +157,11 @@ Users.Create()
 As with most statements, it will output dialect neutral SQL from its `String()` method. Dialect specific output is created with the `String()` method on the current connection.
 
 ```sql
-CREATE TABLE "users" (
-  "id" INTEGER NOT NULL,
-  "name" VARCHAR(32) NOT NULL,
-  "password" VARCHAR(128) NOT NULL,
-  PRIMARY KEY ("id")
+CREATE TABLE users (
+  id INTEGER NOT NULL,
+  name VARCHAR(32) NOT NULL,
+  password VARCHAR(128) NOT NULL,
+  PRIMARY KEY (id)
 );
 ```
 
@@ -188,7 +188,7 @@ Users.Insert()
 When using the Sqlite3 dialect it will generate the following SQL:
 
 ```sql
-INSERT INTO "users" ("id", "name", "password") VALUES (?, ?, ?)
+INSERT INTO users (id, name, password) VALUES (?, ?, ?)
 ```
 
 Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case insensitive manner that is also aware of camel to snake case conversion. More complex names or aliases should specify db struct tags:
@@ -213,7 +213,7 @@ sol.Update(Users)
 Both will produce the following SQL with the sqlite3 dialect:
 
 ```sql
-UPDATE "users" SET "id" = ?, "name" = ?, "password" = ?
+UPDATE users SET id = ?, name = ?, password = ?
 ```
 
 Conditionals can be specified using `Where`:
@@ -231,7 +231,7 @@ Users.Delete().Where(Users.C("name").Equals("admin"))
 ```
 
 ```sql
-DELETE FROM "users" WHERE "users"."name" = ?
+DELETE FROM users WHERE users.name = ?
 ```
 
 #### SELECT
@@ -245,7 +245,7 @@ sol.Select(Users.C("id"), Users.C("name"), Users.C("password"))
 ```
 
 ```sql
-SELECT "users"."id", "users"."name", "users"."password" FROM "users"
+SELECT users.id, users.name, users.password FROM users
 ```
 
 Multiple results can be returned directly into slice of structs:
@@ -278,13 +278,13 @@ var Contacts = sol.Table("contacts",
 ```
 
 ```sql
-CREATE TABLE "contacts" (
-  "id" INTEGER,
-  "user_id" INTEGER NOT NULL REFERENCES users("id"),
-  "key" VARCHAR,
-  "value" VARCHAR,
-  PRIMARY KEY ("id"),
-  UNIQUE ("user_id", "key")
+CREATE TABLE contacts (
+  id INTEGER,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  key VARCHAR,
+  value VARCHAR,
+  PRIMARY KEY (id),
+  UNIQUE (user_id, key)
 );
 ```
 
@@ -302,11 +302,11 @@ expect := NewTester(t, &postgres.PostGres{})
 The instance's `SQL` method will test expected output and parameterization:
 
 ```go
-expect.SQL(`DELETE FROM "users"`, Users.Delete())
+expect.SQL(Users.Delete(), `DELETE FROM users`)
 
 expect.SQL(
-    `INSERT INTO "users" ("id", "name") VALUES ($1, $2)`,
     Users.Insert().Values(Values{"id": 1, "name": "user"}),
+    `INSERT INTO users (id, name) VALUES ($1, $2)`,
     1, "user",
 )
 ```

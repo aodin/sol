@@ -41,25 +41,6 @@ type tester struct {
 	dialect dialect.Dialect
 }
 
-// Create tests the compilation of a Creatable clause using the tester's
-// dialect.
-// func (t *tester) Create(expect string, clause Creatable) {
-// 	caller := callerInfo()
-// 	actual, err := clause.Create(t.dialect)
-// 	if err != nil {
-// 		t.t.Errorf("%s: unexpected error from Create(): %s", caller, err)
-// 		return
-// 	}
-// 	if expect != actual {
-// 		t.t.Errorf(
-// 			"%s: unexpected SQL from Create(): expect %s, got %s",
-// 			caller,
-// 			expect,
-// 			actual,
-// 		)
-// 	}
-// }
-
 // Error tests that the given Compiles instances generates an error for the
 // current dialect.
 func (t *tester) Error(stmt Compiles) {
@@ -107,7 +88,7 @@ func (t *tester) SQL(stmt Compiles, expect string, ps ...interface{}) {
 
 	// Examine individual parameters for equality
 	for i, param := range *params {
-		if !ObjectsAreEqual(ps[i], param) {
+		if !reflect.DeepEqual(ps[i], param) {
 			t.t.Errorf(
 				"%s: unequal parameters at index %d: \n - have %#v, want %#v",
 				caller,
@@ -119,14 +100,7 @@ func (t *tester) SQL(stmt Compiles, expect string, ps ...interface{}) {
 	}
 }
 
-func ObjectsAreEqual(a, b interface{}) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-
-	return reflect.DeepEqual(a, b)
-}
-
+// NewTester creates a new SQL/Error tester that uses the given dialect
 func NewTester(t *testing.T, d dialect.Dialect) *tester {
 	return &tester{t: t, dialect: d}
 }

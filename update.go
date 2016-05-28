@@ -2,6 +2,7 @@ package sol
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aodin/sol/dialect"
 )
@@ -21,7 +22,7 @@ func (stmt UpdateStmt) String() string {
 
 // Compile outputs the UPDATE statement using the given dialect and parameters.
 func (stmt UpdateStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
-	// Check for delayed errors
+	// Return immediately if there are existing errors
 	if err := stmt.Error(); err != nil {
 		return "", err
 	}
@@ -45,12 +46,8 @@ func (stmt UpdateStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		return "", fmt.Errorf("sol: failed to compile UPDATE values: %s", err)
 	}
 
-	// Begin building the UPDATE statement
-	compiled := fmt.Sprintf(
-		`UPDATE %s SET %s`,
-		stmt.table.Name(),
-		compiledValues,
-	)
+	// Being building the statement
+	compiled := []string{UPDATE, stmt.table.Name(), SET, compiledValues}
 
 	// Add a conditional statement if it exists
 	if stmt.where != nil {
@@ -58,9 +55,9 @@ func (stmt UpdateStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		if err != nil {
 			return "", err
 		}
-		compiled += fmt.Sprintf(" WHERE %s", cc)
+		compiled = append(compiled, WHERE, cc)
 	}
-	return compiled, nil
+	return strings.Join(compiled, WHITESPACE), nil
 }
 
 // Values attaches the given values to the statement. The keys of values

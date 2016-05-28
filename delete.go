@@ -1,7 +1,7 @@
 package sol
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/aodin/sol/dialect"
 )
@@ -22,19 +22,22 @@ func (stmt DeleteStmt) String() string {
 // An error may be returned because of a pre-existing error or because
 // an error occurred during compilation.
 func (stmt DeleteStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	// Return immediately if there are existing errors
 	if err := stmt.Error(); err != nil {
 		return "", err
 	}
-	compiled := fmt.Sprintf(`DELETE FROM %s`, stmt.table.Name())
+
+	// Being building the statement
+	compiled := []string{DELETE, FROM, stmt.table.Name()}
 
 	if stmt.where != nil {
 		cc, err := stmt.where.Compile(d, ps)
 		if err != nil {
 			return "", err
 		}
-		compiled += fmt.Sprintf(" WHERE %s", cc)
+		compiled = append(compiled, WHERE, cc)
 	}
-	return compiled, nil
+	return strings.Join(compiled, WHITESPACE), nil
 }
 
 // Where adds a conditional WHERE clause to the DELETE statement.

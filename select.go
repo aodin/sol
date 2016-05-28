@@ -44,12 +44,13 @@ func (stmt SelectStmt) compileTables() []string {
 }
 
 func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	// Return immediately if there are existing errors
 	if err := stmt.Error(); err != nil {
 		return "", err
 	}
 
-	// The finished statement will be joined with spaces
-	var compiled = []string{SELECT}
+	// Being building the statement
+	compiled := []string{SELECT}
 
 	if stmt.isDistinct {
 		compiled = append(compiled, DISTINCT)
@@ -115,7 +116,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	if stmt.offset != 0 {
 		compiled = append(compiled, OFFSET, fmt.Sprintf("%d", stmt.offset))
 	}
-	return strings.Join(compiled, " "), nil
+	return strings.Join(compiled, WHITESPACE), nil
 }
 
 func (stmt SelectStmt) hasTable(name string) bool {

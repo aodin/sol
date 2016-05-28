@@ -36,7 +36,7 @@ func (v Values) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 func (v Values) Diff(other Values) Values {
 	diff := Values{}
 	for key, value := range v {
-		if !ObjectsAreEqual(value, other[key]) {
+		if !reflect.DeepEqual(value, other[key]) {
 			diff[key] = value
 		}
 	}
@@ -50,7 +50,7 @@ func (v Values) Equals(other Values) bool {
 		return false
 	}
 	for key, a := range v {
-		if b, ok := other[key]; !ok || !ObjectsAreEqual(a, b) {
+		if b, ok := other[key]; !ok || !reflect.DeepEqual(a, b) {
 			return false
 		}
 	}

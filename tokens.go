@@ -17,6 +17,8 @@ const (
 	ORDERBY        = "ORDER BY"
 	RIGHTOUTERJOIN = "RIGHT OUTER JOIN"
 	SELECT         = "SELECT"
+	SET            = "SET"
 	UPDATE         = "UPDATE"
 	WHERE          = "WHERE"
+	WHITESPACE     = " "
 )

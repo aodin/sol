@@ -10,11 +10,10 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
-var (
-	// ErrNoColumns is returned when a query for one columns returns none
-	ErrNoColumns = errors.New(
-		"sol: attempt to create a statement with zero columns",
-	)
+// ErrNoColumns is returned when attempting to compile a query without
+// any columns
+var ErrNoColumns = errors.New(
+	"sol: cannot compile a statement without columns",
 )
 
 // InsertStmt is the internal representation of an INSERT statement.
