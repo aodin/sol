@@ -1,5 +1,6 @@
 language: go
 sudo: false
 before_script:
-  - psql -c 'create database travis_ci_test;' -U postgres
-  - psql -c 'CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' -U postgres -d travis_ci_test
+  - psql -c 'create database sol_test;' -U postgres
+  - psql -c 'CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' -U postgres -d sol_test
+  - mysql -e 'create database sol_test;'
