@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aodin/sol/dialect"
 )
@@ -21,7 +22,7 @@ func (v Values) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	keys := v.Keys()
 	values := make([]string, len(keys))
 	for i, key := range keys {
-		param := &Parameter{v[key]}
+		param := NewParam(v[key])
 		compiledParam, err := param.Compile(d, ps)
 		if err != nil {
 			return "", err
@@ -59,7 +60,7 @@ func (v Values) Equals(other Values) bool {
 
 // Exclude removes the given keys and returns the remaining Values
 func (v Values) Exclude(keys ...string) Values {
-	safe := Values{}
+	out := Values{}
 ValueLoop:
 	for key, value := range v {
 		for _, k := range keys {
@@ -67,9 +68,24 @@ ValueLoop:
 				continue ValueLoop
 			}
 		}
-		safe[key] = value
+		out[key] = value
 	}
-	return safe
+	return out
+}
+
+// Filters returns a Values type with key-values from the original Values
+// that match the given keys
+func (v Values) Filter(keys ...string) Values {
+	out := Values{}
+	for key, value := range v {
+		for _, k := range keys {
+			if k == key {
+				out[key] = value
+				break
+			}
+		}
+	}
+	return out
 }
 
 // Keys returns the keys of the Values map in alphabetical order.
@@ -101,11 +117,9 @@ func (v Values) Merge(others ...Values) Values {
 }
 
 // MarshalJSON converts Values to JSON after converting all byte slices to
-// a string type.
-// By default, byte slices are JSON unmarshaled as base64.
+// a string type. By default, byte slices are JSON unmarshaled as base64.
 // This is an issue since the postgres driver will scan string/varchar
-// types as byte slices. Since Values{} should rarely be used within
-// Go code, we're only modifying the JSON marshaler.
+// types as byte slices - the current solution is to convert before output.
 func (v Values) MarshalJSON() ([]byte, error) {
 	for key, value := range v {
 		if val, ok := value.([]byte); ok {
@@ -115,6 +129,11 @@ func (v Values) MarshalJSON() ([]byte, error) {
 
 	// Convert to prevent recursive marshaling
 	return json.Marshal(map[string]interface{}(v))
+}
+
+// Reject is an alias for Exclude
+func (v Values) Reject(keys ...string) Values {
+	return v.Exclude(keys...)
 }
 
 // Values returns the values of the Values map in the alphabetical order
@@ -129,26 +148,66 @@ func (v Values) Values() []interface{} {
 }
 
 // Values converts the given object to a Values{} type
-func ValuesOf(obj interface{}) Values {
-	values := Values{}
-
+func ValuesOf(obj interface{}) (Values, error) {
 	elem := reflect.Indirect(reflect.ValueOf(obj))
 	switch elem.Kind() {
-	case reflect.Struct:
-		fields := SelectFieldsFromElem(elem.Type())
-		// TODO how to convert to db column name? Show Values even care?
-		for _, field := range fields {
-			var fieldElem reflect.Value = elem
-			for _, name := range field.names {
-				fieldElem = fieldElem.FieldByName(name)
-			}
-			// TODO Skip empty if omit empty...?
-			values[field.column] = fieldElem.Interface()
-		}
 	case reflect.Map:
-		// TODO Convert to Values - generalized map iteration?
-	default:
-		// TODO Return an error, panic, or silent?
+		// If the type is already Values, convert and return
+		switch converted := obj.(type) {
+		case Values:
+			return converted, nil
+		case *Values:
+			return *converted, nil
+		case map[string]interface{}:
+			return Values(converted), nil
+		case *map[string]interface{}:
+			return Values(*converted), nil
+		default:
+			return nil, fmt.Errorf(
+				"sol: unsupported map type %T for ValuesOf()", converted,
+			)
+		}
+	case reflect.Struct:
+		// DeepFields returns nothing on error states
+		values := Values{}
+		for _, field := range DeepFields(obj) {
+			name, opts := parseTag(field.Type.Tag.Get(tagLabel))
+			if opts.Has(OmitEmpty) && isEmptyValue(field.Value) {
+				continue // Skip empty values
+			}
+
+			if name == "" {
+				name = field.Type.Name // Fallback to struct field name
+			}
+			values[name] = field.Value.Interface()
+		}
+		return values, nil
 	}
-	return values
+	return nil, fmt.Errorf("sol: unsupported type %T for ValuesOf()", obj)
+}
+
+// isEmptyValue is from Go's encoding/json package: encode.go
+// Copyright 2010 The Go Authors. All rights reserved.
+// TODO what about pointer fields?
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.String:
+		return v.String() == ""
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	case reflect.Struct:
+		t, ok := v.Interface().(time.Time)
+		if ok {
+			return t.IsZero()
+		}
+	}
+	return false
 }

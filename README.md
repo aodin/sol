@@ -8,6 +8,7 @@ A SQL toolkit for Go - in the style of Python's [SQLAlchemy Core](http://docs.sq
 * Build complete database schemas
 * Create reusable and cross-dialect SQL statements
 * Allow struct instances and slices to be directly populated by the database
+* Support for MySQL, PostGres, and SQLite3
 
 Quickstart
 ----------
@@ -103,7 +104,7 @@ if err = conn.Query(Users.Select(), &user); err != nil {
 If you'd prefer to have queries panic on error, you can create a panicky version of the connection:
 
 ```go
-panicky := conn.PanicOnError()
+panicky := conn.PanicOnError() // or Must()
 panicky.Query(Users.Create())
 ```
 

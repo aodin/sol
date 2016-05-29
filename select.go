@@ -56,7 +56,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		compiled = append(compiled, DISTINCT)
 		if stmt.distincts.Exists() {
 			compiled = append(compiled, fmt.Sprintf(
-				"ON (%s)", strings.Join(stmt.distincts.Names(), ", "),
+				"ON (%s)", strings.Join(stmt.distincts.FullNames(), ", "),
 			))
 		}
 	}
@@ -89,7 +89,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 	if stmt.groupBy.Exists() {
 		compiled = append(
-			compiled, GROUPBY, strings.Join(stmt.groupBy.Names(), ", "),
+			compiled, GROUPBY, strings.Join(stmt.groupBy.FullNames(), ", "),
 		)
 	}
 
@@ -290,9 +290,9 @@ func SelectTable(table Tabular, selects ...Selectable) (stmt SelectStmt) {
 	return
 }
 
-// Select generates a new SELECT statement from the given columns and tables.
+// Select create a SELECT statement from the given columns and tables.
 func Select(selections ...Selectable) (stmt SelectStmt) {
-	columns := []ColumnElem{}
+	columns := []ColumnElem{} // Holds columns until validated
 	for _, selection := range selections {
 		if selection == nil {
 			stmt.AddMeta("sol: received a nil selectable in Select()")
@@ -308,9 +308,7 @@ func Select(selections ...Selectable) (stmt SelectStmt) {
 
 	for _, column := range columns {
 		if column.IsInvalid() {
-			stmt.AddMeta(
-				"sol: the column %s does not exist", column.FullName(),
-			)
+			stmt.AddMeta("sol: column %s does not exist", column.FullName())
 			return
 		}
 		// Since selections do not need to be unique, any errors

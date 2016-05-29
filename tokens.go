@@ -11,6 +11,7 @@ const (
 	HAVING         = "HAVING"
 	INNERJOIN      = "INNER JOIN"
 	INSERT         = "INSERT"
+	INTO           = "INTO"
 	LEFTOUTERJOIN  = "LEFT OUTER JOIN"
 	LIMIT          = "LIMIT"
 	OFFSET         = "OFFSET"
@@ -19,6 +20,7 @@ const (
 	SELECT         = "SELECT"
 	SET            = "SET"
 	UPDATE         = "UPDATE"
+	VALUES         = "VALUES"
 	WHERE          = "WHERE"
 	WHITESPACE     = " "
 )

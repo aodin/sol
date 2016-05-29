@@ -15,7 +15,7 @@ This variable can be given inline:
 
     SOL_TEST_MYSQL="user:pass@tcp(host:port)/db?parseTime=true" go test
 
-If the environmental variable is not given, it will default to a [Travis CI](https://docs.travis-ci.com/user/database-setup/#MySQL) connection string, which will likely panic on your local system.
+If the environmental variable is empty, the test will default to a [Travis CI](https://docs.travis-ci.com/user/database-setup/#MySQL) connection string, which will likely panic on your local system.
 
 #### Docker
 

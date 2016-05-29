@@ -9,7 +9,7 @@ A valid PostGres connection string should be set on the environmental variable `
 
     SOL_TEST_POSTGRES="host=localhost port=5432 dbname=sol_test user=postgres password=secret sslmode=disable" go test
 
-If the environmental variable is not given, it will default to a [Travis CI](https://docs.travis-ci.com/user/database-setup/#PostgreSQL) connection string, which will likely panic on your local system.
+If the environmental variable is empty, the test will default to a [Travis CI](https://docs.travis-ci.com/user/database-setup/#PostgreSQL) connection string, which will likely panic on your local system.
 
 #### Docker
 

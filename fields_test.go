@@ -73,8 +73,6 @@ func TestSelectFields_ignored(t *testing.T) {
 	)
 }
 
-// TODO implement scanner
-
 type embedded struct {
 	embeddedID
 	Name      string
@@ -93,5 +91,5 @@ type nested struct {
 
 type moreNesting struct {
 	nested
-	OneMore string
+	OneMore string `db:"text,omitempty"`
 }

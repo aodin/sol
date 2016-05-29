@@ -15,6 +15,11 @@ func (p *Parameter) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	return d.Param(ps.Len() - 1), nil
 }
 
+// NewParam creates a new *Paramter
+func NewParam(value interface{}) *Parameter {
+	return &Parameter{value}
+}
+
 // Parameters aggregated values before parameterization
 type Parameters []interface{}
 

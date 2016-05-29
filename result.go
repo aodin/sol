@@ -156,7 +156,7 @@ func (r *Result) All(arg interface{}) error {
 
 		// Build the fields of the given struct
 		// TODO this operation could be cached
-		fields := SelectFieldsFromElem(elem)
+		fields := FieldsFromElem(elem)
 
 		// Align the fields to the selected columns
 		// This will discard unmatched fields

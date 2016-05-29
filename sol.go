@@ -7,6 +7,8 @@ Sol is a SQL toolkit for Go - in the style of Python's SQLAlchemy Core:
 
 - Allow struct instances and slices to be directly populated by the database
 
+- Support for MySQL, PostGres, and SQLite3
+
 */
 package sol
 

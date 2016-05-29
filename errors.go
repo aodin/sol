@@ -1,8 +1,15 @@
 package sol
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+)
+
+// ErrNoColumns is returned when attempting to compile a query without
+// any columns
+var ErrNoColumns = errors.New(
+	"sol: cannot compile a statement without columns",
 )
 
 type fieldError struct {

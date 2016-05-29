@@ -2,6 +2,7 @@ package sol
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -66,6 +67,50 @@ func TestValues_Merge(t *testing.T) {
 }
 
 func TestValuesOf(t *testing.T) {
-	// u := user{Email: "a@example.com", Name: "A"}
-	// t.Error(ValuesOf(u))
+	var out Values
+	var err error
+
+	// Test map types
+	values := Values{"a": 1}
+	if out, err = ValuesOf(values); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with Values: %s", err)
+	}
+	if !reflect.DeepEqual(values, out) {
+		t.Errorf("Unexpected values from ValuesOf() with Values: %+v", out)
+	}
+	if out, err = ValuesOf(&values); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with *Values: %s", err)
+	}
+	if !reflect.DeepEqual(values, out) {
+		t.Errorf("Unexpected values from ValuesOf() with *Values: %+v", out)
+	}
+
+	attrs := map[string]interface{}{"b": 2}
+	if out, err = ValuesOf(attrs); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with map: %s", err)
+	}
+	if !reflect.DeepEqual(Values(attrs), out) {
+		t.Errorf("Unexpected values from ValuesOf() with map: %+v", out)
+	}
+	if out, err = ValuesOf(&attrs); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with *map: %s", err)
+	}
+	if !reflect.DeepEqual(Values(attrs), out) {
+		t.Errorf("Unexpected values from ValuesOf() with *map: %+v", out)
+	}
+
+	// The following types are declared in fields_test
+	embed := embedded{
+		embeddedID: embeddedID{ID: 20},
+		Name:       "Object",
+		// Leave the timestamp and manager fields uninitialized
+	}
+
+	if out, err = ValuesOf(embed); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with struct: %s", err)
+	}
+	// if out, err = ValuesOf(&embed); err != nil {
+	// 	t.Errorf("Unexpected error from ValuesOf() with *struct: %s", err)
+	// }
+
 }

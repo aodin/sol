@@ -23,7 +23,7 @@ type Tabular interface {
 type TableElem struct {
 	name         string
 	alias        string
-	columns      ColumnSet
+	columns      UniqueColumnSet
 	pk           PKArray // Table's primary key
 	uniques      []UniqueArray
 	fks          []FKElem // This table's foreign keys
