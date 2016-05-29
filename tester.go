@@ -121,7 +121,7 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	// TODO foreign keys
 	testusers := Table("testusers",
 		Column("id", types.Integer()),
-		Column("email", types.Varchar().Limit(256).NotNull()),
+		Column("email", types.Varchar().Limit(255).NotNull()),
 		Column("is_admin", types.Boolean().NotNull()),
 		Column("created_at", types.Timestamp()),
 		PrimaryKey("id"),
