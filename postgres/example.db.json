@@ -1,9 +1,0 @@
-{
-    "driver": "postgres",
-    "host": "localhost",
-    "port": 5432,
-    "name": "sol_test",
-    "user": "postgres",
-    "password": "password",
-    "sslmode": "disable"
-}

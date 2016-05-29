@@ -149,7 +149,7 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	}
 
 	if err = tx.Query(testusers.Insert().Values(admin)); err != nil {
-		t.Fatalf("INSERT should not fail %s", err)
+		t.Fatalf("INSERT by struct should not fail %s", err)
 	}
 
 	// SELECT
@@ -161,10 +161,31 @@ func IntegrationTest(t *testing.T, conn *DB) {
 		t.Fatalf("SELECT should not fail: %s", err)
 	}
 
-	if selected != admin {
+	// TODO test with direct comparison: selected == admin
+	// For now, test each field since DATETIME handling is terribly
+	// inconsistent across databases
+	if selected.ID != admin.ID {
 		t.Errorf(
-			"Unequal testusers: have %+v, want %+v",
-			selected, admin,
+			"Unequal testusers id: have %d, want %d",
+			selected.ID, admin.ID,
+		)
+	}
+	if selected.Email != admin.Email {
+		t.Errorf(
+			"Unequal testusers email: have %s, want %s",
+			selected.Email, admin.Email,
+		)
+	}
+	if selected.IsAdmin != admin.IsAdmin {
+		t.Errorf(
+			"Unequal testusers is_admin: have %t, want %t",
+			selected.IsAdmin, admin.IsAdmin,
+		)
+	}
+	if !selected.CreatedAt.Equal(admin.CreatedAt) {
+		t.Errorf(
+			"Unequal testusers created_at: have %v, want %v",
+			selected.CreatedAt, admin.CreatedAt,
 		)
 	}
 
@@ -178,10 +199,7 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	}
 
 	var updated testuser
-	if err = tx.Query(
-		testusers.Select().Where(testusers.C("id").Equals(admin.ID)),
-		&updated,
-	); err != nil {
+	if err = tx.Query(testusers.Select().Limit(1), &updated); err != nil {
 		t.Fatalf("SELECT should not fail: %s", err)
 	}
 
@@ -190,6 +208,37 @@ func IntegrationTest(t *testing.T, conn *DB) {
 		t.Errorf(
 			"Unequal testusers: have %+v, want %+v",
 			updated, selected,
+		)
+	}
+
+	// INSERT by values
+	client := Values{
+		"id":         2,
+		"email":      "client@example.com",
+		"is_admin":   false,
+		"created_at": time.Now().UTC().Truncate(time.Second),
+	}
+
+	if err = tx.Query(testusers.Insert().Values(client)); err != nil {
+		t.Fatalf("INSERT by values should not fail %s", err)
+	}
+	var list []testuser
+	if err = tx.Query(
+		testusers.Select().OrderBy(testusers.C("id").Desc()),
+		&list,
+	); err != nil {
+		t.Fatalf("SELECT with ORDER BY should not fail: %s", err)
+	}
+
+	if len(list) != 2 {
+		t.Fatalf("Unexpected length of list: want 2, have %d", len(list))
+	}
+
+	// The client should be first
+	if list[0].Email != "client@example.com" {
+		t.Errorf(
+			"Unexpected email: want client@example.com, have %d",
+			list[0].Email,
 		)
 	}
 
@@ -204,4 +253,14 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	if err = tx.Query(testusers.Drop()); err != nil {
 		t.Fatalf("DROP TABLE should not fail %s", err)
 	}
+
+	// Test a recover
+	func() {
+		defer func() {
+			if panicked := recover(); panicked == nil {
+				t.Errorf("Connection failed to panic on error")
+			}
+		}()
+		conn.Must().Query(testusers.Select(), list)
+	}()
 }

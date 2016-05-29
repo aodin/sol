@@ -23,7 +23,7 @@ import (
 	"github.com/aodin/sol/types"
 )
 
-// Create a database schema using sol's Table function
+// Database schemas are created using sol's Table function
 var Users = sol.Table("users",
 	sol.Column("id", types.Integer().NotNull()),
 	sol.Column("name", types.Varchar().Limit(32).NotNull()),
@@ -31,7 +31,7 @@ var Users = sol.Table("users",
 	sol.PrimaryKey("id"),
 )
 
-// Structs are used to send and receive values to the database
+// Structs can be used to send and receive values
 type User struct {
 	ID       int64
 	Name     string
@@ -49,11 +49,11 @@ func main() {
 	// Create the users table
 	conn.Query(Users.Create())
 
-	// Insert a user - they can be inserted by value or reference
+	// Insert a user by struct
 	admin := User{ID: 1, Name: "admin", Password: "secret"}
 	conn.Query(Users.Insert().Values(admin))
 
-	// Select a user - query methods must be given a pointer
+	// Select a user - query methods must be given a pointer receiver!
 	var user User
 	conn.Query(Users.Select(), &user)
 	log.Println(user)
@@ -75,6 +75,7 @@ Import Sol and at least one database dialect:
 ```go
 import (
     "github.com/aodin/sol"
+    _ "github.com/aodin/sol/mysql"
     _ "github.com/aodin/sol/postgres"
     _ "github.com/aodin/sol/sqlite3"
 )
@@ -291,12 +292,12 @@ CREATE TABLE contacts (
 Develop
 -------
 
-To run all tests, the `postgres` sub-package requires a configuration file at `db.json` within the `postgres/` directory. See the example file in that directory for the correct format.
+Some dialects require a configuration to be set via an environmental variable for testing, such as `SOL_TEST_POSTGRES` for the `postgres` dialect. Example variables and, if possible, [Docker](https://www.docker.com/) containers have been provided in the subpackages where these variables are required.
 
 Statements and clauses can be tested by creating a new dialect-specific tester; for example using the `postgres` package:
 
 ```go
-expect := NewTester(t, &postgres.PostGres{})
+expect := NewTester(t, postgres.Dialect())
 ```
 
 The instance's `SQL` method will test expected output and parameterization:

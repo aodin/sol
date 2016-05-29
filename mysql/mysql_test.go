@@ -33,6 +33,7 @@ func getConn(t *testing.T) *sol.DB {
 	return conn
 }
 
+// TestMySQL performs the standard integration test
 func TestMySQL(t *testing.T) {
 	conn := getConn(t)
 	defer conn.Close()

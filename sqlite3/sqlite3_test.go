@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	sql "github.com/aodin/sol"
+	"github.com/aodin/sol"
 	"github.com/aodin/sol/types"
 )
 
 // Example schemas should not panic
-var things = sql.Table("things",
-	sql.Column("name", types.Varchar()),
-	sql.Column("created_at", types.Timestamp()), // TODO auto-timestamp?
+var things = sol.Table("things",
+	sol.Column("name", types.Varchar()),
+	sol.Column("created_at", types.Timestamp()), // TODO auto-timestamp?
 )
 
 type thing struct {
@@ -22,85 +22,20 @@ type thing struct {
 	CreatedAt *time.Time `db:",omitempty"`
 }
 
-// Connect to an in-memory sqlite3 instance and execute some statements.
+// TestSqlite3 performs the standard integration test
 func TestSqlite3(t *testing.T) {
-	conn, err := sql.Open("sqlite3", ":memory:")
-	require.Nil(t, err, `Failed to connect to in-memory sqlite3 instance`)
-	defer conn.Close()
-
-	require.Nil(t,
-		conn.Query(things.Create()),
-		`Create table "things" should not error`,
-	)
-
-	require.Nil(t,
-		conn.Query(things.Insert().Values(thing{Name: "Alphabet"})),
-		`Insert into table "things" should not error`,
-	)
-
-	var company thing
-	conn.Query(things.Select().Limit(1), &company)
-
-	assert.Equal(t, "Alphabet", company.Name)
-
-	// Start a transaction and roll it back
-	tx, err := conn.Begin()
-	require.Nil(t, err, "Creating a new transaction should not error")
-
-	require.Nil(t,
-		tx.Query(things.Insert().Values(thing{Name: "Beta"})),
-		`Insert into table "things" within a transaction should not error`,
-	)
-
-	var all []thing
-	require.Nil(t,
-		tx.Query(things.Select(), &all),
-		`Select from table "things" within a transaction should not error`,
-	)
-	assert.Equal(t, 2, len(all))
-
-	// Rolling back the transaction should remove the second insert
-	tx.Rollback()
-
-	var one []thing
-	conn.Query(things.Select(), &one)
-	assert.Equal(t, 1, len(one))
-
-	// Test the panicConn
-	var another thing
-	conn.Must().Query(
-		things.Select().OrderBy(things.C("name")).Limit(1), &another,
-	)
-	assert.Equal(t, "Alphabet", another.Name)
-
-	assert.Panics(t, func() {
-		// A non-pointer receiver will error, and with Must(), will panic
-		conn.Must().Query(things.Select(), all)
-	})
-}
-
-// TestSqlite3_PanicOnError tests a panicky connection with sqlite3
-func TestSqlite3_PanicOnError(t *testing.T) {
-	dbconn, err := sql.Open("sqlite3", ":memory:")
+	conn, err := sol.Open("sqlite3", ":memory:")
 	if err != nil {
-		t.Fatalf("failed to connect to in-memory sqlite3 instance: %s", err)
+		t.Fatalf("Failed to open connection: %s", err)
 	}
-	defer dbconn.Close()
-
-	// Convert the dbconn into a panicky connection
-	conn := dbconn.PanicOnError()
-
-	conn.Query(things.Create())
-
-	// An empty selection should not panic (but still error)
-	var first thing
-	conn.Query(things.Select(), &first)
+	defer conn.Close()
+	sol.IntegrationTest(t, conn)
 }
 
 // TestSqlite3_Transaction tests the transactional operations of Sqlite3,
 // including Commit, Rollback, and Close
 func TestSqlite3_Transaction(t *testing.T) {
-	conn, err := sql.Open("sqlite3", ":memory:")
+	conn, err := sol.Open("sqlite3", ":memory:")
 	require.Nil(t, err, `Failed to connect to in-memory sqlite3 instance`)
 	defer conn.Close()
 

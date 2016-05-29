@@ -2,39 +2,43 @@ package postgres
 
 import (
 	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/aodin/config"
-	sql "github.com/aodin/sol"
+	"github.com/aodin/sol"
 	"github.com/aodin/sol/types"
 )
 
-var travisCI = config.Database{
-	Driver:  "postgres",
-	Host:    "localhost",
-	Port:    5432,
-	Name:    "travis_ci_test",
-	User:    "postgres",
-	SSLMode: "disable",
-}
+const travisCI = "host=localhost port=5432 dbname=sol_test user=postgres sslmode=disable"
 
-// getConfigOrUseTravis returns the parsed db.json if it exists or the
-// travisCI config if it does not
-func getConfigOrUseTravis() (config.Database, error) {
-	conf, err := config.ParseDatabasePath("./db.json")
-	if os.IsNotExist(err) {
-		return travisCI, nil
+var conn *sol.DB
+var once sync.Once
+
+// getConn returns a postgres connection pool
+func getConn(t *testing.T) *sol.DB {
+	// Check if an ENV VAR has been set, otherwise, use travis
+	credentials := os.Getenv("SOL_TEST_POSTGRES")
+	if credentials == "" {
+		credentials = travisCI
 	}
-	return conf, err
+
+	once.Do(func() {
+		var err error
+		if conn, err = sol.Open("postgres", credentials); err != nil {
+			t.Fatalf("Failed to open connection: %s", err)
+		}
+		conn.SetMaxOpenConns(20)
+	})
+	return conn
 }
 
-var things = sql.Table("things",
-	sql.Column("name", types.Varchar()),
-	sql.Column("created_at", Timestamp().Default(Now)),
+var things = sol.Table("things",
+	sol.Column("name", types.Varchar()),
+	sol.Column("created_at", Timestamp().Default(Now)),
 )
 
 type thing struct {
@@ -43,19 +47,19 @@ type thing struct {
 }
 
 var itemsA = Table("items_a",
-	sql.Column("id", Serial()),
-	sql.Column("name", types.Varchar()),
+	sol.Column("id", Serial()),
+	sol.Column("name", types.Varchar()),
 )
 
 var itemsB = Table("items_b",
-	sql.Column("id", Serial()),
-	sql.Column("name", types.Varchar()),
-	sql.PrimaryKey("id"),
+	sol.Column("id", Serial()),
+	sol.Column("name", types.Varchar()),
+	sol.PrimaryKey("id"),
 )
 
 var itemsFK = Table("items_fk",
-	sql.ForeignKey("id", itemsB, types.Integer().NotNull()),
-	sql.Column("name", types.Varchar()),
+	sol.ForeignKey("id", itemsB, types.Integer().NotNull()),
+	sol.Column("name", types.Varchar()),
 )
 
 type item struct {
@@ -68,73 +72,18 @@ func (i item) Exists() bool {
 }
 
 var meetings = Table("meetings",
-	sql.Column("uuid", UUID().NotNull().Unique().Default(GenerateV4)),
-	sql.Column("time", TimestampRange()),
+	sol.Column("uuid", UUID().NotNull().Unique().Default(GenerateV4)),
+	sol.Column("time", TimestampRange()),
 )
 
-// Connect to an PostGres instance and execute some statements.
+// TestPostGres performs the standard integration test
 func TestPostGres(t *testing.T) {
-	conf, err := getConfigOrUseTravis()
-	if err != nil {
-		t.Fatalf("Failed to parse database config: %s", err)
-	}
-
-	// TODO in-memory postgres only?
-	conn, err := sql.Open(conf.Credentials())
-	if err != nil {
-		t.Fatalf("Failed to connect to a PostGres instance: %s", err)
-	}
-	defer conn.Close()
-
-	require.Nil(t, conn.Query(things.Drop().IfExists()))
-	require.Nil(t,
-		conn.Query(things.Create()),
-		`Create table "things" should not error`,
-	)
-
-	alphabet := thing{
-		Name:      "Alphabet",
-		CreatedAt: time.Now(),
-	}
-	require.Nil(t,
-		conn.Query(things.Insert().Values(alphabet)),
-		`Insert into table "things" should not error`,
-	)
-
-	var company thing
-	conn.Query(things.Select().Limit(1), &company)
-
-	assert.Equal(t, "Alphabet", company.Name)
-	assert.False(t, company.CreatedAt.IsZero())
-
-	// Start a transaction and roll it back
-	tx, err := conn.Begin()
-	require.Nil(t, err, "Creating a new transaction should not error")
-
-	beta := thing{Name: "Beta"}
-
-	require.Nil(t,
-		tx.Query(things.Insert().Values(beta)),
-		`Insert into table "things" within a transaction should not error`,
-	)
-
-	var all []thing
-	require.Nil(t,
-		tx.Query(things.Select(), &all),
-		`Select from table "things" within a transaction should not error`,
-	)
-	assert.Equal(t, 2, len(all))
-
-	// Rolling back the transaction should remove the second insert
-	tx.Rollback()
-
-	var one []thing
-	conn.Query(things.Select(), &one)
-	assert.Equal(t, 1, len(one))
+	conn := getConn(t) // TODO close
+	sol.IntegrationTest(t, conn)
 }
 
 func TestPostGres_Create(t *testing.T) {
-	expect := sql.NewTester(t, &PostGres{})
+	expect := sol.NewTester(t, &PostGres{})
 
 	expect.SQL(
 		itemsFK.Create(),
@@ -145,73 +94,10 @@ func TestPostGres_Create(t *testing.T) {
 	)
 }
 
-func TestPostGres_CRUD(t *testing.T) {
-	conf, err := getConfigOrUseTravis()
-	require.Nil(t, err, "Failed to parse database config")
-
-	conn, err := sql.Open(conf.Credentials())
-	require.Nil(t, err, `Failed to connect to a PostGres instance`)
-	defer conn.Close()
-
-	tx, err := conn.Begin()
-	require.Nil(t, err, "Creating a new transaction should not error")
-	defer tx.Rollback()
-
-	if err = tx.Query(itemsA.Create().Temporary().IfNotExists()); err != nil {
-		t.Fatalf("Create table %s should not error: %s", itemsA.Name(), err)
-	}
-
-	google := item{Name: "Google"}
-
-	if err = tx.Query(
-		itemsA.Insert().Values(google).Returning(),
-		&google,
-	); err != nil {
-		t.Fatalf("INSERT should not fail %s", err)
-	}
-
-	// Update
-	tx.Query(
-		itemsA.Update().Values(
-			sql.Values{"name": "Alphabet"},
-		).Where(itemsA.C("id").Equals(google.ID)),
-	)
-
-	var alpha item
-	if err = tx.Query(
-		itemsA.Select().Where(itemsA.C("id").Equals(google.ID)),
-		&alpha,
-	); err != nil {
-		t.Fatalf("Select should not fail: %s", err)
-	}
-
-	if google.ID != alpha.ID {
-		t.Errorf(
-			"Unexpected IDs of google and alphabet: %d != %d",
-			google.ID, alpha.ID,
-		)
-	}
-	if alpha.Name != "Alphabet" {
-		t.Errorf("Unexpected name for alpha: %s", alpha.Name)
-	}
-
-	// Delete
-	if err = tx.Query(
-		itemsA.Delete().Where(itemsA.C("name").Equals("Alphabet")),
-	); err != nil {
-		t.Fatalf("Delete should not fail: %s", err)
-	}
-}
-
 // TestPostGres_Select tests a variety of SelectStmt features against the
 // postgres database
 func TestPostGres_Select(t *testing.T) {
-	conf, err := getConfigOrUseTravis()
-	require.Nil(t, err, "Failed to parse database config")
-
-	conn, err := sql.Open(conf.Credentials())
-	require.Nil(t, err, `Failed to connect to a PostGres instance`)
-	defer conn.Close()
+	conn := getConn(t) // TODO close
 
 	tx, err := conn.Begin()
 	require.Nil(t, err, "Creating a new transaction should not error")
@@ -261,13 +147,7 @@ func TestPostGres_Select(t *testing.T) {
 // TestPostGres_Transaction tests the transactional operations of PostGres,
 // including Commit, Rollback, and Close
 func TestPostGres_Transaction(t *testing.T) {
-	conf, err := getConfigOrUseTravis()
-	require.Nil(t, err, "Failed to parse database config")
-
-	// TODO in-memory postgres only?
-	conn, err := sql.Open(conf.Credentials())
-	require.Nil(t, err, `Failed to connect to a PostGres instance`)
-	defer conn.Close()
+	conn := getConn(t) // TODO close
 
 	require.Nil(t, conn.Query(things.Drop().IfExists()))
 	require.Nil(t,
