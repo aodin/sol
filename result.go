@@ -76,27 +76,20 @@ func (r Result) One(obj interface{}) error {
 	switch elem.Kind() {
 	case reflect.Struct:
 		fields := DeepFields(obj)
+		aligned := AlignFields(columns, fields)
 
 		// Create an interface pointer for each column's destination.
-		// Unmatched values will be discarded
+		// Unmatched scanner values will be discarded
 		dest := make([]interface{}, len(columns))
-		var atLeastOneMatch bool
-		for i, column := range columns {
-			for _, field := range fields {
-				// Match names either exactly and using camel to snake
-				if field.Name == column || camelToSnake(field.Name) == column {
-					dest[i] = field.Value.Addr().Interface()
-					atLeastOneMatch = true
-					break
-				}
-			}
-		}
 
 		// If nothing matched and the number of fields equals the number
 		// columns, then blindly align columns and fields
 		// TODO This may be too friendly of a feature
-		if !atLeastOneMatch && len(fields) == len(columns) {
-			for i, field := range fields {
+		if NoMatchingFields(aligned) && len(fields) == len(columns) {
+			aligned = fields
+		}
+		for i, field := range aligned {
+			if field.Exists() {
 				dest[i] = field.Value.Addr().Interface()
 			}
 		}
@@ -107,7 +100,7 @@ func (r Result) One(obj interface{}) error {
 
 	case reflect.Slice:
 		return fmt.Errorf("sol: Result.One cannot scan into slices")
-	default:
+	default: // TODO enumerate types?
 		if len(columns) != 1 {
 			return fmt.Errorf(
 				"sol: unsupported type %T for multi-column Result.One", obj,
@@ -122,120 +115,82 @@ func (r Result) One(obj interface{}) error {
 // must be a pointer to a slice of either structs or values. If there
 // is only a single result column, then the destination can be a
 // slice of a single native type (e.g. []int).
-func (r Result) All(arg interface{}) error {
-	argVal := reflect.ValueOf(arg)
-	if argVal.Kind() != reflect.Ptr {
+func (r Result) All(obj interface{}) error {
+	objVal := reflect.ValueOf(obj)
+	if objVal.Kind() != reflect.Ptr {
 		return fmt.Errorf(
 			"sol: received a non-pointer destination for result.All",
 		)
 	}
 
-	argElem := argVal.Elem()
-	if argElem.Kind() != reflect.Slice {
+	objElem := objVal.Elem()
+	if objElem.Kind() != reflect.Slice {
 		return fmt.Errorf(
 			"sol: received a non-slice destination for result.All",
 		)
 	}
 
 	// Get the type of the slice element
-	elem := argElem.Type().Elem()
+	elem := objElem.Type().Elem()
 
 	columns, err := r.Columns()
 	if err != nil {
-		return fmt.Errorf(
-			"sol: error returning columns from result: %s",
-			err,
-		)
+		return fmt.Errorf("sol: error returning columns from result: %s", err)
 	}
 
 	switch elem.Kind() {
 	case reflect.Struct:
+		fields := DeepFields(reflect.New(elem).Interface())
+		aligned := AlignFields(columns, fields)
 
-		// Build the fields of the given struct
-		// TODO this operation could be cached
-		fields := FieldsFromElem(elem)
-
-		// Align the fields to the selected columns
-		// This will discard unmatched fields
-		// TODO struct mode? error if not all columns were matched?
-		aligned := AlignColumns(columns, fields)
-
-		// If the aligned struct is empty, fallback to matching the fields in
-		// order, but only if the length of the columns equals the fields
-		if aligned.Empty() && len(columns) == len(fields) {
+		// If nothing matched and the number of fields equals the number
+		// columns, then blindly align columns and fields
+		// TODO This may be too friendly of a feature
+		if NoMatchingFields(aligned) && len(fields) == len(columns) {
 			aligned = fields
 		}
 
-		// Is there an existing slice element for this result?
-		n := argElem.Len()
-
-		// The number of results that hve been scanned
-		var scanned int
+		total := objElem.Len() // Existing elements
+		index := 0             // Current scanner index
 
 		for r.Next() {
-			if scanned < n {
-				// Scan into an existing element
-				newElem := argElem.Index(scanned)
-
-				// Get an interface for each field and save a pointer to it
-				dest := make([]interface{}, len(aligned))
-				for i, field := range aligned {
-					// If the field does not exist, the value will be discarded
-					if !field.Exists() {
-						dest[i] = &dest[i]
-						continue
-					}
-
-					// Recursively get an interface to the elem's fields
-					var fieldElem reflect.Value = newElem
-					for _, name := range field.names {
-						fieldElem = fieldElem.FieldByName(name)
-					}
-					dest[i] = fieldElem.Addr().Interface()
-				}
-
-				if err := r.Scan(dest...); err != nil {
-					return err
-				}
+			var newElem reflect.Value
+			if index < total {
+				// Match the values on the existing object
+				newElem = objElem.Index(index)
 			} else {
-				// Create a new slice element
-				newElem := reflect.New(elem).Elem()
-
-				// Get an interface for each field and save a pointer to it
-				dest := make([]interface{}, len(aligned))
-				for i, field := range aligned {
-					// If the field does not exist, the value will be discarded
-					if !field.Exists() {
-						dest[i] = &dest[i]
-						continue
-					}
-
-					// Recursively get an interface to the elem's fields
-					var fieldElem reflect.Value = newElem
-					for _, name := range field.names {
-						fieldElem = fieldElem.FieldByName(name)
-					}
-					dest[i] = fieldElem.Addr().Interface()
-				}
-
-				if err := r.Scan(dest...); err != nil {
-					return err
-				}
-				argElem.Set(reflect.Append(argElem, newElem))
+				// Create a new element
+				newElem = reflect.New(elem).Elem()
 			}
-			scanned += 1
-		}
 
+			dest := make([]interface{}, len(columns))
+			for i, field := range aligned {
+				if field.Exists() {
+					dest[i] = newElem.FieldByIndex(field.Type.Index).Addr().Interface()
+				}
+			}
+
+			if err := r.Scan(dest...); err != nil {
+				return fmt.Errorf("sol: error while scanning struct: %s", err)
+			}
+
+			if index >= total {
+				objElem.Set(reflect.Append(objElem, newElem))
+			}
+
+			index += 1
+		}
 	case reflect.Map:
-		_, ok := arg.(*[]Values)
+		_, ok := obj.(*[]Values)
 		if !ok {
 			return fmt.Errorf("sol: slices of maps are only allowed if they are of type sol.Values")
 		}
 
+		// TODO scan into existing elements?
 		for r.Next() {
 			values := Values{}
 
-			// TODO scan directly into values?
+			// TODO How to scan directly into values?
 			addr := make([]interface{}, len(columns))
 			dest := make([]interface{}, len(columns))
 			for i := range addr {
@@ -250,11 +205,11 @@ func (r Result) All(arg interface{}) error {
 				values[name] = addr[i]
 			}
 
-			argElem.Set(reflect.Append(argElem, reflect.ValueOf(values)))
+			objElem.Set(reflect.Append(objElem, reflect.ValueOf(values)))
 		}
-
-	default:
+	default: // TODO enumerate types?
 		// Single column results can be scanned into native types
+		// TODO scan into existing elements?
 		if len(columns) != 1 {
 			return fmt.Errorf(
 				"sol: unsupported destination for multi-column result: %s",
@@ -266,9 +221,8 @@ func (r Result) All(arg interface{}) error {
 			if err := r.Scan(newElem.Addr().Interface()); err != nil {
 				return err
 			}
-			argElem.Set(reflect.Append(argElem, newElem))
+			objElem.Set(reflect.Append(objElem, newElem))
 		}
 	}
-
 	return r.Err()
 }

@@ -52,7 +52,7 @@ func (mock mock) Scan(dests ...interface{}) error {
 		v := reflect.Indirect(reflect.ValueOf(dest))
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			v.SetInt(mockInt)
+			v.SetInt(int64(mock.counter)) // Test increments
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			v.SetUint(uint64(mockInt))
 		case reflect.String:
@@ -65,7 +65,7 @@ func (mock mock) Scan(dests ...interface{}) error {
 			// Used by Values
 			switch mock.columns[i] {
 			case "int":
-				v.Set(reflect.ValueOf(mockInt))
+				v.Set(reflect.ValueOf(int64(mock.counter))) // Test increments
 			case "str":
 				v.Set(reflect.ValueOf(mockStr))
 			case "bool":
@@ -90,6 +90,7 @@ func mockResult(total int, columns ...string) Result {
 
 func TestMock(t *testing.T) {
 	example := mockResult(1, "int", "str", "bool", "float", "time")
+	example.Next()
 
 	var num int64
 	var str string
@@ -143,6 +144,12 @@ func TestResult_One(t *testing.T) {
 		t.Errorf("Unequal Values: %+v != %+v", expected, values)
 	}
 
+	values = Values{}
+	one = mockResult(1, "int", "str") // Reset
+	if err := one.One(&values); err == nil {
+		t.Errorf("Result.One should error when given a *Values type: %s")
+	}
+
 	one = mockResult(1, "int") // Reset
 	ID := struct {
 		ID int64
@@ -160,7 +167,7 @@ func TestResult_One(t *testing.T) {
 	}
 
 	// Match misaligned fields
-	two = mockResult(2, "user_id", "is_admin")
+	two = mockResult(2, "user_id", "is_admin", "str")
 	user := struct {
 		UserID  int64
 		Email   string
@@ -197,22 +204,88 @@ func TestResult_One(t *testing.T) {
 func TestResult_All(t *testing.T) {
 	var zero, two Result // Example results
 
+	// Scan into values
 	var values []Values
 	zero = mockResult(0, "int")
 	if err := zero.All(&values); err != nil {
-		t.Errorf("Zero results should not error with Result.All")
+		t.Errorf("Zero results should not error with Result.All: %s", err)
 	}
 
 	two = mockResult(2, "int", "str")
-	if err := two.All(&values); err != nil {
-		t.Errorf("Result.All should not error when scanned into []Values")
+	if err := two.All(values); err == nil {
+		t.Errorf("Result.All should error when given a non-pointer")
 	}
 
-	if len(values) != 2 {
-		t.Fatalf("Unexpected length of values: want 2, have %d", len(values))
+	two = mockResult(2, "int", "str") // Reset
+	if err := two.All(&values); err != nil {
+		t.Errorf(
+			"Result.All should not error when scanned into []Values: %s",
+			err,
+		)
 	}
-	if len(values[0]) != 2 {
-		t.Fatalf("Unexpected values: want 2, have %d", len(values[0]))
+	wantValues := []Values{
+		{"int": int64(1), "str": mockStr},
+		{"int": int64(2), "str": mockStr},
 	}
-	// TODO Test actual values
+	if !reflect.DeepEqual(values, wantValues) {
+		t.Errorf("Unequal Values slice: want %v, have %v", wantValues, values)
+	}
+
+	// Scan into structs
+	two = mockResult(2, "user_id", "is_admin", "str")
+	type user struct {
+		UserID  int64
+		Email   string
+		IsAdmin bool
+	}
+	var users []user
+
+	if err := two.All(users); err == nil {
+		t.Errorf("Result.All should error when scanned into a non-pointer")
+	}
+
+	if err := two.All(&users); err != nil {
+		t.Errorf(
+			"Result.All should not error when scanned into a slice of structs",
+			err,
+		)
+	}
+	wantUsers := []user{
+		{UserID: 1, IsAdmin: true},
+		{UserID: 2, IsAdmin: true},
+	}
+	if !reflect.DeepEqual(users, wantUsers) {
+		t.Errorf("Unequal struct slices: want %v, have %v", wantUsers, users)
+	}
+
+	// Struct slices can also be pre-populated
+	users = []user{{UserID: 3, Email: "admin@example.com"}}
+	two = mockResult(2, "user_id", "is_admin") // Reset
+	if err := two.All(&users); err != nil {
+		t.Errorf(
+			"Result.All should not error when scanned into a pre-populated slice of structs: %s",
+			err,
+		)
+	}
+	wantUsers = []user{
+		{UserID: 1, Email: "admin@example.com", IsAdmin: true},
+		{UserID: 2, IsAdmin: true},
+	}
+	if !reflect.DeepEqual(users, wantUsers) {
+		t.Errorf("Unequal struct slices: want %v, have %v", wantUsers, users)
+	}
+
+	// Scan into a slice of a single native type
+	var ints []int
+	two = mockResult(2, "int")
+	if err := two.All(&ints); err != nil {
+		t.Errorf(
+			"Result.All should not error when scanned into native type slices: %s",
+			err,
+		)
+	}
+	wantInts := []int{1, 2}
+	if !reflect.DeepEqual(ints, wantInts) {
+		t.Errorf("Unequal int slice: want %v, have %v", wantInts, ints)
+	}
 }
