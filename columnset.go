@@ -146,6 +146,15 @@ func (set UniqueColumnSet) Add(columns ...Columnar) (UniqueColumnSet, error) {
 	return set, nil
 }
 
+// EmptyValues creates an empty Values from the UniqueColumnSet
+func (set UniqueColumnSet) EmptyValues() Values {
+	values := Values{}
+	for _, column := range set.order {
+		values[column.Name()] = nil
+	}
+	return values
+}
+
 // Filters returns a UniqueColumnSet of columns from the original
 // set that match the given names
 func (set UniqueColumnSet) Filter(names ...string) (out UniqueColumnSet) {

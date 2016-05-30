@@ -3,7 +3,6 @@ package sol
 import (
 	"reflect"
 	"time"
-	"unicode"
 
 	"database/sql"
 )
@@ -103,26 +102,6 @@ func (f fields) Has(column string) bool {
 		}
 	}
 	return false
-}
-
-// camelToSnake converts camel case (FieldName) to snake case (field_name)
-func camelToSnake(camel string) string {
-	if camel == "" {
-		return camel
-	}
-	runes := []rune(camel)
-	lowered := unicode.ToLower(runes[0])
-	prev := (runes[0] != lowered)
-	snake := []rune{lowered}
-	for _, char := range runes[1:] {
-		lowered := unicode.ToLower(char)
-		if !prev && (char != lowered) {
-			snake = append(snake, []rune("_")...)
-		}
-		snake = append(snake, lowered)
-		prev = (char != lowered)
-	}
-	return string(snake)
 }
 
 func recurse(names []string, elem reflect.Type) (matches fields) {

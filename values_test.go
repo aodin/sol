@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestValues(t *testing.T) {
@@ -101,16 +102,72 @@ func TestValuesOf(t *testing.T) {
 
 	// The following types are declared in fields_test
 	embed := embedded{
-		embeddedID: embeddedID{ID: 20},
-		Name:       "Object",
-		// Leave the timestamp and manager fields uninitialized
+		Serial: Serial{ID: uint64(20)},
+		Name:   "Object",
 	}
 
 	if out, err = ValuesOf(embed); err != nil {
 		t.Errorf("Unexpected error from ValuesOf() with struct: %s", err)
 	}
-	// if out, err = ValuesOf(&embed); err != nil {
-	// 	t.Errorf("Unexpected error from ValuesOf() with *struct: %s", err)
-	// }
 
+	expected := Values{
+		"id":        uint64(20),
+		"Name":      "Object",
+		"UpdatedAt": (*time.Time)(nil),
+	}
+	if !reflect.DeepEqual(expected, out) {
+		t.Errorf("Unexpected values from ValuesOf() with *struct: %+v", out)
+	}
+	if out, err = ValuesOf(embed); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with *struct: %s", err)
+	}
+	if !reflect.DeepEqual(expected, out) {
+		t.Errorf("Unexpected values from ValuesOf() with *struct: %+v", out)
+	}
+
+	now := time.Now()
+	embed.Serial.ID = uint64(0)
+	embed.Timestamp.CreatedAt = now
+
+	if out, err = ValuesOf(embed); err != nil {
+		t.Errorf("Unexpected error from ValuesOf() with struct: %s", err)
+	}
+
+	expected = Values{
+		"Name":      "Object",
+		"CreatedAt": now,
+		"UpdatedAt": (*time.Time)(nil),
+	}
+	if !reflect.DeepEqual(expected, out) {
+		t.Errorf("Unexpected values from ValuesOf() with *struct: %+v", out)
+	}
+}
+
+var emptyValues = []bool{
+	isEmptyValue(reflect.ValueOf(0)),
+	isEmptyValue(reflect.ValueOf("")),
+	isEmptyValue(reflect.ValueOf(false)),
+	isEmptyValue(reflect.ValueOf(0.0)),
+	isEmptyValue(reflect.ValueOf(time.Time{})),
+}
+
+var nonEmptyValues = []bool{
+	isEmptyValue(reflect.ValueOf(1)),
+	isEmptyValue(reflect.ValueOf("h")),
+	isEmptyValue(reflect.ValueOf(true)),
+	isEmptyValue(reflect.ValueOf(0.1)),
+	isEmptyValue(reflect.ValueOf(time.Now())),
+}
+
+func TestIsEmptyValue(t *testing.T) {
+	for i, isEmpty := range emptyValues {
+		if !isEmpty {
+			t.Errorf("Value %d should be empty", i)
+		}
+	}
+	for i, isNotEmpty := range nonEmptyValues {
+		if isNotEmpty {
+			t.Errorf("Value %d should not be empty", i)
+		}
+	}
 }

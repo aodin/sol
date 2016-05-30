@@ -11,9 +11,9 @@ import (
 // InsertStmt is the internal representation of an INSERT statement.
 type InsertStmt struct {
 	Stmt
-	table       Tabular
-	columns     ColumnSet
-	multiValues []Values
+	table      Tabular
+	columns    UniqueColumnSet
+	valuesList []Values
 }
 
 // String outputs the parameter-less INSERT statement in a neutral dialect.
@@ -36,24 +36,50 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		return "", err
 	}
 
-	cols := len(stmt.columns.order)
+	// There must be values, and there must be more than one value in the
+	// first element of the values list - otherwise create nil values
+	// TODO Create a ColumnValuesSet to handle the following?
+	aliases := Aliases{}
+	if len(stmt.valuesList) == 0 || len(stmt.valuesList[0]) == 0 {
+		stmt.valuesList = []Values{stmt.columns.EmptyValues()}
+		for _, column := range stmt.columns.order {
+			aliases[column.Name()] = column.Name() // ugly
+		}
+	} else {
+		// Be friendly: take the intersection of the Values and the
+		// currently selected columns. The Values keys will be matched
+		// with the precedence:
+		// 1. Exact match
+		// 2. Camel to snake case conversion (case sensitive)
+		// Only the first Values element will be matched
+		for _, key := range stmt.valuesList[0].Keys() {
+			column := stmt.columns.Get(key)
+			if column.IsInvalid() {
+				column = stmt.columns.Get(camelToSnake(key))
+			}
+			if column.IsValid() {
+				aliases[column.Name()] = key
+			}
+		}
+
+		// Remove the unmatched columns
+		stmt.columns = stmt.columns.Filter(aliases.Keys()...)
+	}
+
 	// No columns? no statement!
-	if cols == 0 {
+	if len(stmt.columns.order) == 0 {
 		return "", ErrNoColumns
 	}
 
 	// TODO Bulk insert syntax is dialect specific
-	// TODO what safety checks should happen here?
-	// Every Values must have the expected number of columns with
-	// matching column names
+	// TODO must all Values must have the same keys?
 	var groups []string
-	if len(stmt.multiValues) > 0 {
-		groups = make([]string, len(stmt.multiValues))
-		for g, values := range stmt.multiValues {
-			// TODO method of ColumnSet - CompileWith?
+	if len(stmt.valuesList) > 0 {
+		groups = make([]string, len(stmt.valuesList))
+		for g, values := range stmt.valuesList {
 			group := make([]string, len(stmt.columns.order))
 			for i, column := range stmt.columns.order {
-				param := NewParam(values[column.Name()])
+				param := NewParam(values[aliases[column.Name()]])
 				var err error
 				if group[i], err = param.Compile(d, ps); err != nil {
 					return "", err
@@ -61,16 +87,6 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 			}
 			groups[g] = fmt.Sprintf(`(%s)`, strings.Join(group, ", "))
 		}
-	} else {
-		group := make([]string, len(stmt.columns.order))
-		for i, _ := range stmt.columns.order {
-			param := NewParam(nil)
-			var err error
-			if group[i], err = param.Compile(d, ps); err != nil {
-				return "", err
-			}
-		}
-		groups = []string{fmt.Sprintf(`(%s)`, strings.Join(group, ", "))}
 	}
 
 	compiled := []string{
@@ -84,29 +100,69 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	return strings.Join(compiled, WHITESPACE), nil
 }
 
-// Values adds parameters to the INSERT statement. Values can be given
-// as structs, a single Values type, or slices of structs or Values.
-// Both pointers and values are accepted.
-func (stmt InsertStmt) Values(arg interface{}) InsertStmt {
-	elem := reflect.Indirect(reflect.ValueOf(arg))
+// Values adds parameters to the INSERT statement. Accepted types:
+// struc, Values, or a slice of either. Both pointers and values are accepted.
+func (stmt InsertStmt) Values(obj interface{}) InsertStmt {
+	elem := reflect.Indirect(reflect.ValueOf(obj))
+	stmt.valuesList = make([]Values, 1)
 
+	// Examine allowed types
+	var unsupported bool
 	switch elem.Kind() {
 	case reflect.Map:
-		values, ok := arg.(Values) // The only allowed map type is Values
-		if !ok {
-			stmt.AddMeta("sol: inserted values of type map must be Values")
+		switch converted := obj.(type) {
+		case Values:
+			stmt.valuesList[0] = converted
+		case *Values:
+			stmt.valuesList[0] = *converted
+		default:
+			unsupported = true
+		}
+	case reflect.Struct:
+		var err error
+		if stmt.valuesList[0], err = ValuesOf(obj); err != nil {
+			stmt.AddMeta(err.Error())
+			return stmt
+		}
+	case reflect.Slice:
+		if elem.Len() == 0 {
+			stmt.AddMeta("sol: cannot insert values from an empty slice")
+			return stmt
+		}
+
+		// Slices of structs or Values are acceptable
+		if elem.Index(0).Kind() == reflect.Struct {
+			stmt.valuesList = make([]Values, elem.Len())
+			var err error
+			for i := range stmt.valuesList {
+				obj := elem.Index(i).Interface()
+				if stmt.valuesList[i], err = ValuesOf(obj); err != nil {
+					stmt.AddMeta(err.Error())
+					return stmt
+				}
+			}
 			break
 		}
 
-		// Be friendly: take the intersection of the Values and the
-		// currently selected columns
-		// TODO how friendly - perform snake to case conversions here?
-		stmt.columns = stmt.columns.Filter(values.Keys()...)
-		stmt.multiValues = []Values{values.Filter(stmt.columns.Names()...)}
+		switch converted := obj.(type) {
+		// TODO []*Values, *[]*Values are unsupported
+		case []Values:
+			stmt.valuesList = converted
+		case *[]Values:
+			stmt.valuesList = *converted
+		default:
+			unsupported = true
+		}
 	default:
-		stmt.AddMeta("sol: unaccepted Values type (for now)")
+		unsupported = true
 	}
 
+	if unsupported {
+		stmt.AddMeta(
+			"sol: unsupported type %T for inserted values - accepted types: struct, Values, or a slice of either",
+			obj,
+		)
+	}
 	return stmt
 }
 
@@ -136,11 +192,10 @@ func Insert(selections ...Selectable) (stmt InsertStmt) {
 	}
 	stmt.table = column.Table()
 
-	// TODO inserted columns should be unique
 	for _, column := range columns {
 		if column.IsInvalid() {
 			stmt.AddMeta("sol: column %s does not exist", column.FullName())
-			return
+			continue
 		}
 
 		if column.Table() != stmt.table {
@@ -148,9 +203,12 @@ func Insert(selections ...Selectable) (stmt InsertStmt) {
 				"sol: all columns in Insert() must belong to table %s",
 				stmt.table.Name(),
 			)
-			return
+			continue
 		}
-		stmt.columns.order = append(stmt.columns.order, column)
+		var err error
+		if stmt.columns, err = stmt.columns.Add(column); err != nil {
+			stmt.AddMeta(err.Error())
+		}
 	}
 	return
 }

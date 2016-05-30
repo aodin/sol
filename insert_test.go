@@ -1,10 +1,6 @@
 package sol
 
-import (
-	"reflect"
-	"testing"
-	"time"
-)
+import "testing"
 
 func TestInsert(t *testing.T) {
 	expect := NewTester(t, &defaultDialect{})
@@ -22,10 +18,33 @@ func TestInsert(t *testing.T) {
 		nil, nil,
 	)
 
+	// Use structs
+	admin := user{Name: "admin", Email: "admin@example.com"}
 	expect.SQL(
-		users.Insert().Values(user{Name: "admin", Email: "admin@example.com"}),
+		users.Insert().Values(admin),
 		`INSERT INTO users (email, name) VALUES ($1, $2)`,
 		"admin@example.com", "admin",
+	)
+	expect.SQL(
+		users.Insert().Values(&admin),
+		`INSERT INTO users (email, name) VALUES ($1, $2)`,
+		"admin@example.com", "admin",
+	)
+
+	exampleUsers := []user{
+		admin,
+		user{Name: "client", Email: "client@example.com"},
+	}
+
+	expect.SQL(
+		users.Insert().Values(exampleUsers),
+		`INSERT INTO users (email, name) VALUES ($1, $2), ($3, $4)`,
+		"admin@example.com", "admin", "client@example.com", "client",
+	)
+	expect.SQL(
+		users.Insert().Values(&exampleUsers),
+		`INSERT INTO users (email, name) VALUES ($1, $2), ($3, $4)`,
+		"admin@example.com", "admin", "client@example.com", "client",
 	)
 
 	// Use sql.Values
@@ -34,33 +53,37 @@ func TestInsert(t *testing.T) {
 		`INSERT INTO users (id, name) VALUES ($1, $2)`,
 		1, "user",
 	)
-}
 
-var emptyValues = []bool{
-	isEmptyValue(reflect.ValueOf(0)),
-	isEmptyValue(reflect.ValueOf("")),
-	isEmptyValue(reflect.ValueOf(false)),
-	isEmptyValue(reflect.ValueOf(0.0)),
-	isEmptyValue(reflect.ValueOf(time.Time{})),
-}
+	github := Values{"UserID": 1, "KEY": "github"}
+	expect.SQL(
+		contacts.Insert().Values(github),
+		`INSERT INTO contacts (user_id, key) VALUES ($1, $2)`,
+		1, "github",
+	)
+	expect.SQL(
+		contacts.Insert().Values(&github),
+		`INSERT INTO contacts (user_id, key) VALUES ($1, $2)`,
+		1, "github",
+	)
 
-var nonEmptyValues = []bool{
-	isEmptyValue(reflect.ValueOf(1)),
-	isEmptyValue(reflect.ValueOf("h")),
-	isEmptyValue(reflect.ValueOf(true)),
-	isEmptyValue(reflect.ValueOf(0.1)),
-	isEmptyValue(reflect.ValueOf(time.Now())),
-}
-
-func TestIsEmptyValue(t *testing.T) {
-	for i, isEmpty := range emptyValues {
-		if !isEmpty {
-			t.Errorf("Value %d should be empty", i)
-		}
+	exampleContacts := []Values{
+		github,
+		Values{"UserID": 1, "KEY": "bitbucket"},
 	}
-	for i, isNotEmpty := range nonEmptyValues {
-		if isNotEmpty {
-			t.Errorf("Value %d should not be empty", i)
-		}
-	}
+	expect.SQL(
+		contacts.Insert().Values(exampleContacts),
+		`INSERT INTO contacts (user_id, key) VALUES ($1, $2), ($3, $4)`,
+		1, "github", 1, "bitbucket",
+	)
+	expect.SQL(
+		contacts.Insert().Values(&exampleContacts),
+		`INSERT INTO contacts (user_id, key) VALUES ($1, $2), ($3, $4)`,
+		1, "github", 1, "bitbucket",
+	)
+
+	// Handle errors
+	expect.Error(users.Insert().Values("a"))
+	expect.Error(users.Insert().Values([]int{1}))
+	expect.Error(users.Insert().Values([]struct{}{}))
+	expect.Error(users.Insert().Values(nil))
 }

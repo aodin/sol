@@ -7,33 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO Unicode test cases?
-var caseTests = []struct {
-	In, Out string
-}{
-	{In: "SnakeCase", Out: "snake_case"},
-	{In: "UserID", Out: "user_id"},
-	{In: "UUID", Out: "uuid"},
+type Serial struct {
+	ID uint64 `db:"id,omitempty"`
 }
 
-func TestCamelToSnake(t *testing.T) {
-	for i, test := range caseTests {
-		out := camelToSnake(test.In)
-		if out != test.Out {
-			t.Errorf(
-				"Unexpected camel to snake case conversion %d - %s: %s != %s",
-				i, test.In, out, test.Out,
-			)
-		}
-	}
-}
-
-type embeddedID struct {
-	ID uint64 `db:",omitempty"`
-}
-
-func TestSelectFields_embeddedID(t *testing.T) {
-	var elem embeddedID
+func TestSelectFields_Serial(t *testing.T) {
+	var elem Serial
 	fields := SelectFields(&elem)
 
 	if len(fields) != 1 {
@@ -42,7 +21,7 @@ func TestSelectFields_embeddedID(t *testing.T) {
 
 	assert.Equal(t,
 		field{
-			column:  "ID",
+			column:  "id",
 			names:   []string{"ID"},
 			options: []string{OmitEmpty},
 		},
@@ -74,7 +53,7 @@ func TestSelectFields_ignored(t *testing.T) {
 }
 
 type embedded struct {
-	embeddedID
+	Serial
 	Name      string
 	Timestamp struct {
 		CreatedAt time.Time `db:",omitempty"`
