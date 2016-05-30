@@ -4,7 +4,8 @@ import "strings"
 
 // Common options
 const (
-	OmitEmpty = "omitempty"
+	OmitEmpty  = "omitempty"  // Skip this field if it has a zero value
+	OmitUpdate = "omitupdate" // Skip this field during updates
 )
 
 type options []string

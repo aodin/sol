@@ -104,11 +104,7 @@ func (v Values) Keys() []string {
 // Precedence is given to the rightmost Values given as parameters.
 func (v Values) Merge(others ...Values) Values {
 	merged := Values{}
-	// Copy the original map
-	for key, value := range v {
-		merged[key] = value
-	}
-	for _, other := range others {
+	for _, other := range append([]Values{v}, others...) {
 		for key, value := range other {
 			merged[key] = value
 		}
@@ -171,7 +167,7 @@ func ValuesOf(obj interface{}) (Values, error) {
 		values := Values{}
 		for _, field := range DeepFields(obj) {
 			if field.IsOmittable() {
-				continue // Skip empty values
+				continue // Skip zero values
 			}
 			values[field.Name] = field.Value.Interface()
 		}

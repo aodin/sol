@@ -22,8 +22,8 @@ type Result struct {
 }
 
 // One returns a single row from Result. The destination must be a pointer
-// to a struct or Values type. The destination can be a single native type
-// when there is only a single column result.
+// to a struct or Values type. If there is only a single result column,
+// then the destination can be a single native type.
 func (r Result) One(obj interface{}) error {
 	// Confirm that there is at least one row to return
 	if ok := r.Next(); !ok {
@@ -40,20 +40,28 @@ func (r Result) One(obj interface{}) error {
 	value := reflect.ValueOf(obj)
 	switch value.Kind() {
 	case reflect.Map:
+		if value.IsNil() {
+			// TODO this might be a lie...
+			return fmt.Errorf("sol: map types must be initialized before being used as destinations")
+		}
 		values, ok := obj.(Values)
 		if !ok {
 			return fmt.Errorf("sol: map types can be destinations only if they are of type Values")
 		}
 
+		// TODO scan directly into values?
+		addr := make([]interface{}, len(columns))
 		dest := make([]interface{}, len(columns))
-		for i, column := range columns {
-			var addr interface{}
-			values[column] = addr
-			dest[i] = &addr
+		for i := range addr {
+			dest[i] = &addr[i]
 		}
 
 		if err := r.Scan(dest...); err != nil {
 			return fmt.Errorf("sol: error while scanning map: %s", err)
+		}
+
+		for i, name := range columns {
+			values[name] = addr[i]
 		}
 		return r.Err()
 	case reflect.Ptr: // Do nothing here
@@ -75,7 +83,7 @@ func (r Result) One(obj interface{}) error {
 		var atLeastOneMatch bool
 		for i, column := range columns {
 			for _, field := range fields {
-				// Match names both exactly and after camel to snake
+				// Match names either exactly and using camel to snake
 				if field.Name == column || camelToSnake(field.Name) == column {
 					dest[i] = field.Value.Addr().Interface()
 					atLeastOneMatch = true
@@ -110,8 +118,10 @@ func (r Result) One(obj interface{}) error {
 	return r.Err()
 }
 
-// All returns all result rows into the given interface, which must be a
-// pointer to a slice of either structs, values, or a native type.
+// All returns all result rows scanned into the given interface, which
+// must be a pointer to a slice of either structs or values. If there
+// is only a single result column, then the destination can be a
+// slice of a single native type (e.g. []int).
 func (r Result) All(arg interface{}) error {
 	argVal := reflect.ValueOf(arg)
 	if argVal.Kind() != reflect.Ptr {

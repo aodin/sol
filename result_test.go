@@ -9,11 +9,11 @@ import (
 
 // mock values
 var (
-	mockInt     = int64(1)
-	mockString  = "a"
-	mockBoolean = true
-	mockFloat   = 1.1
-	mockTime    = time.Date(2015, 3, 1, 0, 0, 0, 0, time.UTC)
+	mockInt   = int64(1)
+	mockStr   = "a"
+	mockBool  = true
+	mockFloat = 1.1
+	mockTime  = time.Date(2015, 3, 1, 0, 0, 0, 0, time.UTC)
 )
 
 // mock is a mock Scanner used only for testing. It returns an example
@@ -48,7 +48,7 @@ func (mock mock) Scan(dests ...interface{}) error {
 			len(dests), len(mock.columns),
 		)
 	}
-	for _, dest := range dests {
+	for i, dest := range dests {
 		v := reflect.Indirect(reflect.ValueOf(dest))
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -56,13 +56,25 @@ func (mock mock) Scan(dests ...interface{}) error {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			v.SetUint(uint64(mockInt))
 		case reflect.String:
-			v.SetString(mockString)
+			v.SetString(mockStr)
 		case reflect.Bool:
-			v.SetBool(mockBoolean)
+			v.SetBool(mockBool)
 		case reflect.Float32, reflect.Float64:
 			v.SetFloat(mockFloat)
 		case reflect.Interface, reflect.Ptr:
-			// TODO ?
+			// Used by Values
+			switch mock.columns[i] {
+			case "int":
+				v.Set(reflect.ValueOf(mockInt))
+			case "str":
+				v.Set(reflect.ValueOf(mockStr))
+			case "bool":
+				v.Set(reflect.ValueOf(mockBool))
+			case "float":
+				v.Set(reflect.ValueOf(mockFloat))
+			case "time":
+				v.Set(reflect.ValueOf(mockTime))
+			}
 		case reflect.Struct:
 			if t, ok := dest.(*time.Time); ok {
 				*t = mockTime
@@ -77,7 +89,7 @@ func mockResult(total int, columns ...string) Result {
 }
 
 func TestMock(t *testing.T) {
-	example := mockResult(1, "int", "string", "bool", "float", "time")
+	example := mockResult(1, "int", "str", "bool", "float", "time")
 
 	var num int64
 	var str string
@@ -90,11 +102,11 @@ func TestMock(t *testing.T) {
 	if num != mockInt {
 		t.Errorf("Unequal mock int: have %d, want %d", num, mockInt)
 	}
-	if str != mockString {
-		t.Errorf("Unequal mock string: have %s, want %s", str, mockString)
+	if str != mockStr {
+		t.Errorf("Unequal mock str: have %s, want %s", str, mockStr)
 	}
-	if boolean != mockBoolean {
-		t.Errorf("Unequal mock bool: have %t, want %t", boolean, mockBoolean)
+	if boolean != mockBool {
+		t.Errorf("Unequal mock bool: have %t, want %t", boolean, mockBool)
 	}
 	if float != mockFloat {
 		t.Errorf("Unequal mock float: have %f, want %f", float, mockFloat)
@@ -105,26 +117,30 @@ func TestMock(t *testing.T) {
 }
 
 func TestResult_One(t *testing.T) {
-	// Example results
-	var zero, one, two Result
+	var zero, one, two Result // Example results
 
-	values := Values{}
+	var values Values
 	zero = mockResult(0, "int")
-	if err := zero.One(&values); err == nil {
+	if err := zero.One(values); err == nil {
 		t.Errorf("Zero results should error with Result.One")
 	}
 
-	// Return values
 	one = mockResult(1, "int")
+	if err := one.One(values); err == nil {
+		t.Errorf("Results.One should error when given an uninitialized map")
+	}
+
+	values = Values{}
+	one = mockResult(1, "int", "str") // Reset
 	if err := one.One(values); err != nil {
-		t.Errorf("Result.One should not error when given a Values type")
+		t.Errorf(
+			"Result.One should not error when given a Values type: %s",
+			err,
+		)
 	}
-	if len(values) != 1 {
-		t.Errorf("Unexpected length of values: 1 != %d", len(values))
-	}
-	one = mockResult(1, "int") // Reset
-	if err := one.One(&values); err != nil {
-		t.Errorf("Result.One should not error when given a *Values type")
+	expected := Values{"int": mockInt, "str": mockStr}
+	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("Unequal Values: %+v != %+v", expected, values)
 	}
 
 	one = mockResult(1, "int") // Reset
@@ -157,7 +173,7 @@ func TestResult_One(t *testing.T) {
 		t.Errorf("Unequal int: have %d, want %d", user.UserID, mockInt)
 	}
 	if !user.IsAdmin {
-		t.Errorf("Unequal bool: have %t, want %t", user.IsAdmin, mockBoolean)
+		t.Errorf("Unequal bool: have %t, want %t", user.IsAdmin, mockBool)
 	}
 
 	// Single addr dest
@@ -176,4 +192,27 @@ func TestResult_One(t *testing.T) {
 	if err := two.One(&id); err == nil {
 		t.Errorf("Result with multiple columns should error when given a single dest")
 	}
+}
+
+func TestResult_All(t *testing.T) {
+	var zero, two Result // Example results
+
+	var values []Values
+	zero = mockResult(0, "int")
+	if err := zero.All(&values); err != nil {
+		t.Errorf("Zero results should not error with Result.All")
+	}
+
+	two = mockResult(2, "int", "str")
+	if err := two.All(&values); err != nil {
+		t.Errorf("Result.All should not error when scanned into []Values")
+	}
+
+	if len(values) != 2 {
+		t.Fatalf("Unexpected length of values: want 2, have %d", len(values))
+	}
+	if len(values[0]) != 2 {
+		t.Fatalf("Unexpected values: want 2, have %d", len(values[0]))
+	}
+	// TODO Test actual values
 }
