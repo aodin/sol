@@ -16,11 +16,35 @@ var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 
 // Field holds value and type info on a struct field
 type Field struct {
-	Value reflect.Value
-	Type  reflect.StructField
+	Value   reflect.Value
+	Type    reflect.StructField
+	Name    string
+	Options options
 }
 
-// DeepFields returns value and type info on struct types
+// IsIgnorable returns true if the field can be ignored
+func (field Field) IsIgnorable() bool {
+	return field.Name == ignoreTag
+}
+
+// IsOmittable returns true if the field can be omitted
+func (field Field) IsOmittable() bool {
+	return field.Options.Has(OmitEmpty) && isEmptyValue(field.Value)
+}
+
+// NewField creates a Field from a reflect.Value and Type
+func NewField(val reflect.Value, typ reflect.StructField) (field Field) {
+	field.Value = val
+	field.Type = typ
+	field.Name, field.Options = parseTag(typ.Tag.Get(tagLabel))
+	if field.Name == "" {
+		field.Name = field.Type.Name // Fallback to struct field name
+	}
+	return
+}
+
+// DeepFields returns value and type info on struct types. It will return
+// nothing if the given object is not a struct or *struct type.
 func DeepFields(obj interface{}) (fields []Field) {
 	val := reflect.ValueOf(obj)
 	typ := reflect.TypeOf(obj)
@@ -33,7 +57,7 @@ func DeepFields(obj interface{}) (fields []Field) {
 	}
 
 	for i := 0; i < typ.NumField(); i++ {
-		field := Field{Value: val.Field(i), Type: typ.Field(i)}
+		field := NewField(val.Field(i), typ.Field(i))
 
 		// If the field has an ignore tag, skip it and any descendants
 		if field.Type.Tag.Get(tagLabel) == ignoreTag {

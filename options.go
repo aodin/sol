@@ -22,6 +22,7 @@ func (o options) Equals(other options) bool {
 	return true
 }
 
+// Has returns true if the given options exists in the current options
 func (o options) Has(option string) bool {
 	for _, opt := range o {
 		if opt == option {
@@ -31,6 +32,7 @@ func (o options) Has(option string) bool {
 	return false
 }
 
+// parseTag splits a DB struct tag into its name and options
 func parseTag(tag string) (string, options) {
 	parts := strings.Split(tag, ",")
 	return parts[0], options(parts[1:])

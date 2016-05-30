@@ -12,7 +12,7 @@ import (
 )
 
 // Values is a map of column names to values. It can be used both as
-// a source of values, such as in INSERT and UPDATE statements, or as
+// a source of values in INSERT, UPDATE, and Text statements, or as
 // a destination for SELECT.
 type Values map[string]interface{}
 
@@ -168,18 +168,12 @@ func ValuesOf(obj interface{}) (Values, error) {
 			)
 		}
 	case reflect.Struct:
-		// DeepFields returns nothing on error states
 		values := Values{}
 		for _, field := range DeepFields(obj) {
-			name, opts := parseTag(field.Type.Tag.Get(tagLabel))
-			if opts.Has(OmitEmpty) && isEmptyValue(field.Value) {
+			if field.IsOmittable() {
 				continue // Skip empty values
 			}
-
-			if name == "" {
-				name = field.Type.Name // Fallback to struct field name
-			}
-			values[name] = field.Value.Interface()
+			values[field.Name] = field.Value.Interface()
 		}
 		return values, nil
 	}
@@ -188,7 +182,6 @@ func ValuesOf(obj interface{}) (Values, error) {
 
 // isEmptyValue is from Go's encoding/json package: encode.go
 // Copyright 2010 The Go Authors. All rights reserved.
-// TODO what about pointer fields?
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

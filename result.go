@@ -15,15 +15,16 @@ type Scanner interface {
 	Scan(...interface{}) error
 }
 
-// Result is returned by a database query - it implements Scanner
+// Result is returned by a database query - it embeds a Scanner
 type Result struct {
 	stmt string
 	Scanner
 }
 
-// One returns a single row from Result. The destination interface must be
-// a pointer to a struct or a native type.
-func (r *Result) One(arg interface{}) error {
+// One returns a single row from Result. The destination must be a pointer
+// to a struct or Values type. The destination can be a single native type
+// when there is only a single column result.
+func (r Result) One(obj interface{}) error {
 	// Confirm that there is at least one row to return
 	if ok := r.Next(); !ok {
 		return sql.ErrNoRows
@@ -31,76 +32,65 @@ func (r *Result) One(arg interface{}) error {
 
 	columns, err := r.Columns()
 	if err != nil {
-		return fmt.Errorf(
-			"sol: error returning columns from result: %s",
-			err,
-		)
+		return fmt.Errorf("sol: error returning columns from result: %s", err)
 	}
 
-	value := reflect.ValueOf(arg)
-	if value.Kind() == reflect.Map {
-		values, ok := arg.(Values)
+	// Since maps are already pointers, they can be used as destinations
+	// no matter what - as long as they are of type Values
+	value := reflect.ValueOf(obj)
+	switch value.Kind() {
+	case reflect.Map:
+		values, ok := obj.(Values)
 		if !ok {
-			return fmt.Errorf("sol: maps as destinations are only allowed if they are of type sol.Values")
+			return fmt.Errorf("sol: map types can be destinations only if they are of type Values")
 		}
 
-		// TODO scan directly into values?
-		addr := make([]interface{}, len(columns))
 		dest := make([]interface{}, len(columns))
-		for i := range addr {
-			dest[i] = &addr[i]
+		for i, column := range columns {
+			var addr interface{}
+			values[column] = addr
+			dest[i] = &addr
 		}
 
 		if err := r.Scan(dest...); err != nil {
 			return fmt.Errorf("sol: error while scanning map: %s", err)
 		}
-
-		for i, name := range columns {
-			values[name] = addr[i]
-		}
 		return r.Err()
-
-	} else if value.Kind() != reflect.Ptr {
+	case reflect.Ptr: // Do nothing here
+	default:
 		return fmt.Errorf(
-			"sol: received a non-pointer destination for result.One",
+			"sol: received a non-pointer destination for Result.One",
 		)
 	}
 
-	// Get the value of the given interface
+	// Other types must be given as pointers to be valid destinations
 	elem := reflect.Indirect(value)
-
 	switch elem.Kind() {
 	case reflect.Struct:
-		// Build the fields of the given struct
-		// TODO this operation could be cached
-		fields := SelectFields(arg)
+		fields := DeepFields(obj)
 
-		// Align the fields to the selected columns
-		// This will discard unmatched fields
-		// TODO strict mode? error if not all columns were matched?
-		aligned := AlignColumns(columns, fields)
-
-		// If the aligned struct is empty, fallback to matching the fields in
-		// order, but only if the length of the columns equals the fields
-		if aligned.Empty() && len(columns) == len(fields) {
-			aligned = fields
+		// Create an interface pointer for each column's destination.
+		// Unmatched values will be discarded
+		dest := make([]interface{}, len(columns))
+		var atLeastOneMatch bool
+		for i, column := range columns {
+			for _, field := range fields {
+				// Match names both exactly and after camel to snake
+				if field.Name == column || camelToSnake(field.Name) == column {
+					dest[i] = field.Value.Addr().Interface()
+					atLeastOneMatch = true
+					break
+				}
+			}
 		}
 
-		// Get an interface for each field and save a pointer to it
-		dest := make([]interface{}, len(aligned))
-		for i, field := range aligned {
-			// If the field does not exist, the value will be discarded
-			if !field.Exists() {
-				dest[i] = &dest[i]
-				continue
+		// If nothing matched and the number of fields equals the number
+		// columns, then blindly align columns and fields
+		// TODO This may be too friendly of a feature
+		if !atLeastOneMatch && len(fields) == len(columns) {
+			for i, field := range fields {
+				dest[i] = field.Value.Addr().Interface()
 			}
-
-			// Recursively get an interface to the elem's fields
-			var fieldElem reflect.Value = elem
-			for _, name := range field.names {
-				fieldElem = fieldElem.FieldByName(name)
-			}
-			dest[i] = fieldElem.Addr().Interface()
 		}
 
 		if err := r.Scan(dest...); err != nil {
@@ -108,24 +98,21 @@ func (r *Result) One(arg interface{}) error {
 		}
 
 	case reflect.Slice:
-		return fmt.Errorf("sol: cannot scan single results into slices")
-
+		return fmt.Errorf("sol: Result.One cannot scan into slices")
 	default:
 		if len(columns) != 1 {
 			return fmt.Errorf(
-				"sol: unsupported destination for multi-column result: %s",
-				elem.Kind(),
+				"sol: unsupported type %T for multi-column Result.One", obj,
 			)
 		}
-		// Attempt to scan directly into the elem
-		return r.Scan(elem.Addr().Interface())
+		return r.Scan(elem.Addr().Interface()) // Scan directly into the elem
 	}
 	return r.Err()
 }
 
 // All returns all result rows into the given interface, which must be a
 // pointer to a slice of either structs, values, or a native type.
-func (r *Result) All(arg interface{}) error {
+func (r Result) All(arg interface{}) error {
 	argVal := reflect.ValueOf(arg)
 	if argVal.Kind() != reflect.Ptr {
 		return fmt.Errorf(
