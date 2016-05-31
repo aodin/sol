@@ -120,13 +120,26 @@ tx.IsSuccessful()
 
 ### Statements
 
-SQL can be handwritten using the `Text` function, which requires parameters to be written in a dialect neutral format and passed within a `Values` type:
+SQL can be handwritten using the `Text` function, which requires parameters to be written in a dialect neutral format and passed via `Values`:
 
 ```go
-sol.Text(
-    `SELECT * FROM users WHERE id = :id OR name = :name`,
+sol.Text(`SELECT * FROM users WHERE id = :id OR name = :name`).Values(
     sol.Values{"name": "admin", "id": 1},
 )
+```
+
+Or `struct` types:
+
+```go
+user := struct{
+    ID int64
+    Name string
+}{
+    ID: 1,
+    Name: "admin",
+}
+
+sol.Text(`SELECT * FROM users WHERE id = :id OR name = :name`).Values(user)
 ```
 
 The parameters will be re-written for the current dialect:
@@ -193,7 +206,7 @@ When using the Sqlite3 dialect it will generate the following SQL:
 INSERT INTO users (id, name, password) VALUES (?, ?, ?)
 ```
 
-Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names in a case insensitive manner that is also aware of camel to snake case conversion. More complex names or aliases should specify db struct tags:
+Values can be inserted to the database using custom struct types or the generic `sol.Values` type. If given a struct, Sol will attempt to match SQL column names to struct field names both exactly and via a camel to snake case conversion. More complex names or aliases should specify db struct tags:
 
 ```go
 type User struct {
@@ -202,6 +215,15 @@ type User struct {
 	Password           string
 }
 ```
+
+Example camel to snake case conversions:
+
+| Camel Case | Snake Case |
+| ---------- | ---------- |
+| TextBlock  | text_block |
+| UserID     | user_id    |
+| UUID       | uuid       |
+
 
 #### UPDATE
 

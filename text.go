@@ -1,6 +1,7 @@
 package sol
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -31,6 +32,12 @@ func (stmt TextStmt) String() string {
 func (stmt TextStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	// Select the parameters from the statement and replace them
 	// with dialect specific parameters
+	// Also alias the values (TODO hacky and probably too friendly)
+	aliases := Values{}
+	for key, value := range stmt.values {
+		aliases[camelToSnake(key)] = value
+	}
+
 	replacer := func(match string) string {
 		// Remove any matches with more than one leading colon
 		if strings.LastIndex(match, ":") != 0 {
@@ -39,10 +46,13 @@ func (stmt TextStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) 
 
 		key := match[1:]
 
-		// Parameter names must match value keys
+		// Parameter names must match value keys exactly or with
+		// camel to snake conversion
 		value, exists := stmt.values[key]
 		if !exists {
-			stmt.AddMeta("sol: missing value for parameter '%s'", key)
+			if value, exists = aliases[key]; !exists {
+				stmt.AddMeta("sol: missing value for parameter '%s'", key)
+			}
 		}
 
 		param := &Parameter{Value: value}
@@ -56,9 +66,39 @@ func (stmt TextStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) 
 	return compiled, stmt.Error()
 }
 
-// Values sets the values of the statement
-func (stmt TextStmt) Values(values Values) TextStmt {
-	stmt.values = values
+// Values sets the values of the statement. They can be given as either
+// Values or struct types
+func (stmt TextStmt) Values(obj interface{}) TextStmt {
+	elem := reflect.Indirect(reflect.ValueOf(obj))
+
+	// Examine allowed types
+	var unsupported bool
+	switch elem.Kind() {
+	case reflect.Map:
+		switch converted := obj.(type) {
+		case Values:
+			stmt.values = converted
+		case *Values:
+			stmt.values = *converted
+		default:
+			unsupported = true
+		}
+	case reflect.Struct:
+		var err error
+		if stmt.values, err = ValuesOf(obj); err != nil {
+			stmt.AddMeta(err.Error())
+			return stmt
+		}
+	default:
+		unsupported = true
+	}
+
+	if unsupported {
+		stmt.AddMeta(
+			"sol: unsupported type %T for inserted values - accepted types: struct types or Values",
+			obj,
+		)
+	}
 	return stmt
 }
 
