@@ -138,6 +138,9 @@ func (r Result) All(obj interface{}) error {
 		return fmt.Errorf("sol: error returning columns from result: %s", err)
 	}
 
+	total := objElem.Len() // Existing elements
+	index := 0             // Current scanner index
+
 	switch elem.Kind() {
 	case reflect.Struct:
 		fields := DeepFields(reflect.New(elem).Interface())
@@ -150,9 +153,7 @@ func (r Result) All(obj interface{}) error {
 			aligned = fields
 		}
 
-		total := objElem.Len() // Existing elements
-		index := 0             // Current scanner index
-
+		dest := make([]interface{}, len(columns))
 		for r.Next() {
 			var newElem reflect.Value
 			if index < total {
@@ -163,7 +164,6 @@ func (r Result) All(obj interface{}) error {
 				newElem = reflect.New(elem).Elem()
 			}
 
-			dest := make([]interface{}, len(columns))
 			for i, field := range aligned {
 				if field.Exists() {
 					dest[i] = newElem.FieldByIndex(field.Type.Index).Addr().Interface()
@@ -186,21 +186,20 @@ func (r Result) All(obj interface{}) error {
 			return fmt.Errorf("sol: slices of maps are only allowed if they are of type sol.Values")
 		}
 
-		// TODO scan into existing elements?
+		// TODO How to scan directly into values?
+		addr := make([]interface{}, len(columns))
+		dest := make([]interface{}, len(columns))
+		for i := range addr {
+			dest[i] = &addr[i]
+		}
+
 		for r.Next() {
-			values := Values{}
-
-			// TODO How to scan directly into values?
-			addr := make([]interface{}, len(columns))
-			dest := make([]interface{}, len(columns))
-			for i := range addr {
-				dest[i] = &addr[i]
-			}
-
+			// TODO scan into existing elements?
 			if err := r.Scan(dest...); err != nil {
 				return fmt.Errorf("sol: error while scanning map: %s", err)
 			}
 
+			values := Values{}
 			for i, name := range columns {
 				values[name] = addr[i]
 			}

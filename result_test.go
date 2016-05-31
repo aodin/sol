@@ -289,3 +289,36 @@ func TestResult_All(t *testing.T) {
 		t.Errorf("Unequal int slice: want %v, have %v", wantInts, ints)
 	}
 }
+
+// Benchmark the scan
+func BenchmarkScan_Struct(b *testing.B) {
+	var results Result
+	type user struct {
+		UserID  int64
+		Email   string
+		IsAdmin bool
+	}
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		var users []user
+		results = mockResult(10, "user_id", "is_admin", "str")
+		results.All(&users)
+	}
+}
+
+func BenchmarkScan_Values(b *testing.B) {
+	var results Result
+	type user struct {
+		UserID  int64
+		Email   string
+		IsAdmin bool
+	}
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		var values []Values
+		results = mockResult(10, "int", "time", "str")
+		results.All(&values)
+	}
+}
