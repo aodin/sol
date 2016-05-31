@@ -131,11 +131,11 @@ sol.Text(`SELECT * FROM users WHERE id = :id OR name = :name`).Values(
 Or `struct` types:
 
 ```go
-user := struct{
-    ID int64
+user := struct {
+    ID   int64
     Name string
 }{
-    ID: 1,
+    ID:   1,
     Name: "admin",
 }
 

@@ -36,4 +36,9 @@ func TestUniqueColumns(t *testing.T) {
 	if err == nil {
 		t.Fatalf("sol: adding a duplicate column to a unqie set should error")
 	}
+
+	rejected := columns.Reject("example")
+	if len(rejected.order) != 0 {
+		t.Errorf("sol: Reject should have removed the only column")
+	}
 }
