@@ -8,7 +8,7 @@ import (
 	"github.com/aodin/sol/types"
 )
 
-// Tabular is the interface that all dialects of a SQL column must implement
+// Columnar is the interface that all dialects of a SQL column must implement
 type Columnar interface {
 	// Two methods for neutral SQL element interfaces:
 	// (1) Require the interface to return the neutral implementation
@@ -242,14 +242,14 @@ func (col ColumnElem) NotLike(search string) BinaryClause {
 	return col.operator(" NOT LIKE ", search)
 }
 
-// Like creates a case insensitive pattern matching clause that can be used in
-// conditional clauses.
+// ILike creates a case insensitive pattern matching clause that can be
+// used in conditional clauses.
 //  table.Select().Where(table.C("name").ILike(`_b%`))
 func (col ColumnElem) ILike(search string) BinaryClause {
 	return col.operator(" ILIKE ", search)
 }
 
-// TODO common Not clause?
+// NotILike creates a negated, case insensitive pattern matching clause
 func (col ColumnElem) NotILike(search string) BinaryClause {
 	return col.operator(" NOT ILIKE ", search)
 }
@@ -290,14 +290,14 @@ func (col ColumnElem) NotBetween(a, b interface{}) Clause {
 // Ordering
 // ----
 
-// Orerable implements the Orderable interface that allows the column itself
-// to be used in an OrderBy clause.
+// Orderable implements the Orderable interface that allows the column
+// to be used in an ORDER BY clause.
 func (col ColumnElem) Orderable() OrderedColumn {
 	return OrderedColumn{inner: col}
 }
 
 // Asc returns an OrderedColumn. It is the same as passing the column itself
-// to an OrderBy clause.
+// to an ORDER BY clause.
 func (col ColumnElem) Asc() OrderedColumn {
 	return OrderedColumn{inner: col}
 }

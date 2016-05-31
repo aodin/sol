@@ -56,7 +56,7 @@ func (table TableElem) Columns() []ColumnElem {
 	return table.columns.All()
 }
 
-// Create generates the table's CREATE statement.
+// Create returns a CREATE statement for the table
 func (table *TableElem) Create() CreateStmt {
 	return CreateStmt{table: table}
 }
@@ -67,7 +67,7 @@ func (table *TableElem) Delete() DeleteStmt {
 	return Delete(table)
 }
 
-// Create generates the table's DROP statement.
+// Drop returns a DROP statement for the table
 func (table *TableElem) Drop() DropStmt {
 	return DropStmt{table: table}
 }

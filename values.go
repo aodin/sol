@@ -73,7 +73,7 @@ ValueLoop:
 	return out
 }
 
-// Filters returns a Values type with key-values from the original Values
+// Filter returns a Values type with key-values from the original Values
 // that match the given keys
 func (v Values) Filter(keys ...string) Values {
 	out := Values{}
@@ -143,7 +143,7 @@ func (v Values) Values() []interface{} {
 	return values
 }
 
-// Values converts the given object to a Values{} type
+// ValuesOf converts the given object to a Values type
 func ValuesOf(obj interface{}) (Values, error) {
 	elem := reflect.Indirect(reflect.ValueOf(obj))
 	switch elem.Kind() {

@@ -41,6 +41,7 @@ func camelToSnake(camel string) string {
 	return string(snake)
 }
 
+// Aliases track column names during camel to snake case conversion
 type Aliases map[string]string
 
 // Keys returns the keys of the map in unspecified order

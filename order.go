@@ -4,7 +4,8 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
-// Both ColumnElem and OrderedColumns will implement the Orderable interface
+// Orderable is implemented by both ColumnElem and OrderedColumn types. It
+// allows those types to be used in ORDER BY clauses.
 type Orderable interface {
 	Orderable() OrderedColumn
 }
@@ -24,6 +25,7 @@ type OrderedColumn struct {
 // OrderedColumn should implement the Orderable interface
 var _ Orderable = OrderedColumn{}
 
+// String outputs the OrderedColumn in a neutral dialect.
 func (ord OrderedColumn) String() string {
 	compiled, _ := ord.Compile(&defaultDialect{}, Params())
 	return compiled
@@ -45,26 +47,31 @@ func (ord OrderedColumn) Compile(d dialect.Dialect, ps *Parameters) (string, err
 	return compiled, nil
 }
 
+// Orderable returns the OrderedColumn itself
 func (ord OrderedColumn) Orderable() OrderedColumn {
 	return ord
 }
 
+// Asc sets the column ordering to ascending - the default
 func (ord OrderedColumn) Asc() OrderedColumn {
 	ord.desc = false
 	return ord
 }
 
+// Desc sets the column ordering to descending
 func (ord OrderedColumn) Desc() OrderedColumn {
 	ord.desc = true
 	return ord
 }
 
+// NullsFirst sets the column ordering to return NULL results first
 func (ord OrderedColumn) NullsFirst() OrderedColumn {
 	ord.nullsFirst = true
 	ord.nullsLast = false
 	return ord
 }
 
+// NullsLast sets the column ordering to return NULL results last
 func (ord OrderedColumn) NullsLast() OrderedColumn {
 	ord.nullsFirst = false
 	ord.nullsLast = true

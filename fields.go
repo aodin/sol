@@ -115,6 +115,7 @@ func AlignFields(columns []string, fields []Field) []Field {
 	return out
 }
 
+// NoMatchingFields returns true if no fields exist
 func NoMatchingFields(fields []Field) bool {
 	for _, field := range fields {
 		if field.Exists() {

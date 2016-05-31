@@ -46,7 +46,7 @@ func (set ColumnSet) Exists() bool {
 	return len(set.order) > 0
 }
 
-// Filters returns a ColumnSet of columns from the original set that
+// Filter returns a ColumnSet of columns from the original set that
 // match the given names
 func (set ColumnSet) Filter(names ...string) (out ColumnSet) {
 	for _, column := range set.order {
@@ -155,7 +155,7 @@ func (set UniqueColumnSet) EmptyValues() Values {
 	return values
 }
 
-// Filters returns a UniqueColumnSet of columns from the original
+// Filter returns a UniqueColumnSet of columns from the original
 // set that match the given names
 func (set UniqueColumnSet) Filter(names ...string) (out UniqueColumnSet) {
 	return UniqueColumnSet{ColumnSet: set.ColumnSet.Filter(names...)}

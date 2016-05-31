@@ -3,7 +3,7 @@ package postgres
 import (
 	"fmt"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // Register the PostGres driver
 
 	"github.com/aodin/sol/dialect"
 )
@@ -14,7 +14,7 @@ type PostGres struct{}
 // The PostGres dialect must implement the dialect.Dialect interface
 var _ dialect.Dialect = &PostGres{}
 
-// Parameterize returns the postgres specific parameterization scheme.
+// Param returns the postgres specific parameterization scheme.
 func (d *PostGres) Param(i int) string {
 	return fmt.Sprintf(`$%d`, i+1)
 }

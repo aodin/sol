@@ -40,7 +40,7 @@ func TestText(t *testing.T) {
 		2, "A",
 	)
 
-	// Give paramters as struct types
+	// Give parameters as struct types
 	testuser := struct {
 		UserID int `db:"id"`
 		Name   string

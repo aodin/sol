@@ -1,7 +1,7 @@
 package mysql
 
 import (
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // Register the MySQL driver
 
 	"github.com/aodin/sol/dialect"
 )

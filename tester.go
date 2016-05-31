@@ -232,7 +232,7 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	// The client should be first
 	if list[0].Email != "client@example.com" {
 		t.Errorf(
-			"Unexpected email: want client@example.com, have %d",
+			"Unexpected email: want client@example.com, have %s",
 			list[0].Email,
 		)
 	}

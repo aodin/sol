@@ -1,7 +1,7 @@
 package sqlite3
 
 import (
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Register the SQLite3 driver
 
 	"github.com/aodin/sol/dialect"
 )

@@ -147,7 +147,7 @@ func TestResult_One(t *testing.T) {
 	values = Values{}
 	one = mockResult(1, "int", "str") // Reset
 	if err := one.One(&values); err == nil {
-		t.Errorf("Result.One should error when given a *Values type: %s")
+		t.Error("Result.One should error when given a *Values type")
 	}
 
 	one = mockResult(1, "int") // Reset
@@ -246,7 +246,7 @@ func TestResult_All(t *testing.T) {
 
 	if err := two.All(&users); err != nil {
 		t.Errorf(
-			"Result.All should not error when scanned into a slice of structs",
+			"Result.All should not error when scanned into a slice of struct type: %s",
 			err,
 		)
 	}
