@@ -49,6 +49,17 @@ func (t timestamp) Unique() timestamp {
 	return t
 }
 
+func (t timestamp) WithoutTimezone() timestamp {
+	t.withTimezone = false
+	return t
+}
+
+func (t timestamp) WithTimezone() timestamp {
+	// TODO specify timezone?
+	t.withTimezone = true
+	return t
+}
+
 // TODO Date cannot have a time zone
 func Date() (t timestamp) {
 	t.name = "date"
