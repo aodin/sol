@@ -24,7 +24,7 @@ type Columnar interface {
 
 // ColumnElem is a dialect neutral implementation of a SQL column
 type ColumnElem struct {
-	operators []string // TODO or nested custom type?
+	operators []Operator
 	name      string
 	alias     string
 	table     *TableElem
@@ -34,8 +34,8 @@ type ColumnElem struct {
 
 var _ Columnar = ColumnElem{}
 
-func (col ColumnElem) AddOperator(operator string) ColumnElem {
-	col.operators = append([]string{operator}, col.operators...) // prepend
+func (col ColumnElem) AddOperator(op Operator) ColumnElem {
+	col.operators = append([]Operator{op}, col.operators...) // prepend
 	return col
 }
 
@@ -66,8 +66,8 @@ func (col ColumnElem) Columns() []ColumnElem {
 // in the clause to the given Parameters instance
 func (col ColumnElem) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 	str := col.FullName()
-	for _, operator := range col.operators {
-		str = fmt.Sprintf(`%s(%s)`, operator, str)
+	for _, op := range col.operators {
+		str = op.Wrap(str)
 	}
 	return str, nil
 }

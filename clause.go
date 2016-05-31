@@ -13,10 +13,19 @@ type Clause interface {
 	Compiles
 }
 
+// String implements the Clause interface for strings
+// TODO dialect specific, safe-escape
+type String string
+
+func (str String) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	return fmt.Sprintf("'%s'", str), nil
+}
+
 // ArrayClause is any number of clauses with a column join
 type ArrayClause struct {
 	clauses []Clause
 	sep     string
+	post    bool // Used for wrap
 }
 
 var _ Clause = ArrayClause{}
@@ -34,22 +43,39 @@ func (c ArrayClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) 
 	compiled := make([]string, len(c.clauses))
 	var err error
 	for i, clause := range c.clauses {
-		compiled[i], err = clause.Compile(d, ps)
-		if err != nil {
+		if compiled[i], err = clause.Compile(d, ps); err != nil {
 			return "", err
 		}
 	}
 	return strings.Join(compiled, c.sep), nil
 }
 
+// Wrap implements the Operator interface
+// TODO Should Wrap operate on a clause and return a clause?
+func (c ArrayClause) Wrap(str string) string {
+	// Compile all clauses
+	clauses := make([]string, len(c.clauses))
+	var err error
+	for i, clause := range c.clauses {
+		// TODO Is it dialect specific or not?
+		if clauses[i], err = clause.Compile(nil, Params()); err != nil {
+			return "" // silent error?
+		}
+	}
+	if c.post {
+		return strings.Join(append(clauses, str), c.sep)
+	}
+	return strings.Join(append([]string{str}, clauses...), c.sep)
+}
+
 // AllOf joins the given clauses with 'AND' and wraps them in parentheses
 func AllOf(clauses ...Clause) Clause {
-	return FuncClause{Inner: ArrayClause{clauses, " AND "}}
+	return FuncClause{Inner: ArrayClause{clauses: clauses, sep: " AND "}}
 }
 
 // AnyOf joins the given clauses with 'OR' and wraps them in parentheses
 func AnyOf(clauses ...Clause) Clause {
-	return FuncClause{Inner: ArrayClause{clauses, " OR "}}
+	return FuncClause{Inner: ArrayClause{clauses: clauses, sep: " OR "}}
 }
 
 // BinaryClause is two clauses with a separator
@@ -109,6 +135,11 @@ func (c FuncClause) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s(%s)", c.Name, cc), nil
+}
+
+// Wrap implements the Operator interface
+func (c FuncClause) Wrap(str string) string {
+	return fmt.Sprintf("%s(%s)", c.Name, str)
 }
 
 type UnaryClause struct {

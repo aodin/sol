@@ -14,4 +14,9 @@ func TestFunctions(t *testing.T) {
 		Select(Count(users.C("id")).As("Count")),
 		`SELECT COUNT(users.id) AS "Count" FROM users`,
 	)
+
+	expect.SQL(
+		Select(DatePart("hour", users.C("created_at")).As("Hour")),
+		`SELECT DATE_PART('hour', users.created_at) AS "Hour" FROM users`,
+	)
 }
