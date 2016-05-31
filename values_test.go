@@ -102,7 +102,7 @@ func TestValuesOf(t *testing.T) {
 
 	// The following types are declared in fields_test
 	embed := embedded{
-		Serial: Serial{ID: uint64(20)},
+		Serial: Serial{ID: int64(20)},
 		Name:   "Object",
 	}
 
@@ -111,9 +111,11 @@ func TestValuesOf(t *testing.T) {
 	}
 
 	expected := Values{
-		"id":        uint64(20),
+		"id":        int64(20),
 		"Name":      "Object",
 		"UpdatedAt": (*time.Time)(nil),
+		"Custom":    customScanner{},
+		"Value":     false,
 	}
 	if !reflect.DeepEqual(expected, out) {
 		t.Errorf("Unexpected values from ValuesOf() with *struct: %+v", out)
@@ -126,18 +128,15 @@ func TestValuesOf(t *testing.T) {
 	}
 
 	now := time.Now()
-	embed.Serial.ID = uint64(0)
+	embed.Serial.ID = int64(0)
 	embed.Timestamp.CreatedAt = now
 
 	if out, err = ValuesOf(embed); err != nil {
 		t.Errorf("Unexpected error from ValuesOf() with struct: %s", err)
 	}
 
-	expected = Values{
-		"Name":      "Object",
-		"CreatedAt": now,
-		"UpdatedAt": (*time.Time)(nil),
-	}
+	delete(expected, "id")
+	expected["CreatedAt"] = now
 	if !reflect.DeepEqual(expected, out) {
 		t.Errorf("Unexpected values from ValuesOf() with *struct: %+v", out)
 	}

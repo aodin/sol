@@ -5,12 +5,21 @@ import (
 )
 
 type Serial struct {
-	ID uint64 `db:"id,omitempty"`
+	ID int64 `db:"id,omitempty"`
 }
 
-type ignored struct {
-	manager struct{} `db:"-"`
-	name    string
+type metadata struct{ Attrs map[string]string }
+
+type customScanner struct{ info []byte }
+
+func (cs customScanner) Scan(src interface{}) error { return nil }
+
+type Nested struct {
+	Level2 struct {
+		Level3 struct {
+			Value bool
+		}
+	}
 }
 
 type embedded struct {
@@ -21,15 +30,8 @@ type embedded struct {
 		UpdatedAt *time.Time
 		isActive  bool
 	}
-	manager *struct{}
-}
-
-type nested struct {
-	Another string
-	embedded
-}
-
-type moreNesting struct {
-	nested
-	OneMore string `db:"text,omitempty"`
+	manager  *struct{}
+	Custom   customScanner
+	Metadata metadata `db:"-"`
+	Deep     Nested
 }

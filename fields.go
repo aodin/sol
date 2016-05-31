@@ -38,19 +38,21 @@ func (field Field) IsOmittable() bool {
 }
 
 // NewField creates a Field from a reflect.Value and Type
-func NewField(val reflect.Value, typ reflect.StructField) (field Field) {
+func NewField(val reflect.Value, typ reflect.StructField, index ...int) (field Field) {
 	field.Value = val
 	field.Type = typ
 	field.Name, field.Options = parseTag(typ.Tag.Get(tagLabel))
 	if field.Name == "" {
 		field.Name = field.Type.Name // Fallback to struct field name
 	}
+	// Prepend the given index values to the type index
+	field.Type.Index = append(index, field.Type.Index...)
 	return
 }
 
 // DeepFields returns value and type info on struct types. It will return
 // nothing if the given object is not a struct or *struct type.
-func DeepFields(obj interface{}) (fields []Field) {
+func DeepFields(obj interface{}, index ...int) (fields []Field) {
 	val := reflect.ValueOf(obj)
 	typ := reflect.TypeOf(obj)
 	if typ != nil && typ.Kind() == reflect.Ptr {
@@ -62,7 +64,7 @@ func DeepFields(obj interface{}) (fields []Field) {
 	}
 
 	for i := 0; i < typ.NumField(); i++ {
-		field := NewField(val.Field(i), typ.Field(i))
+		field := NewField(val.Field(i), typ.Field(i), index...)
 
 		// If the field has an ignore tag, skip it and any descendants
 		if field.IsIgnorable() {
@@ -90,7 +92,10 @@ func DeepFields(obj interface{}) (fields []Field) {
 		// Save the field or recurse further
 		switch field.Value.Kind() {
 		case reflect.Struct:
-			fields = append(fields, DeepFields(field.Value.Interface())...)
+			fields = append(fields, DeepFields(
+				field.Value.Interface(),
+				field.Type.Index...,
+			)...)
 		default:
 			fields = append(fields, field)
 		}

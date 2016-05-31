@@ -76,8 +76,9 @@ func (mock mock) Scan(dests ...interface{}) error {
 				v.Set(reflect.ValueOf(mockTime))
 			}
 		case reflect.Struct:
-			if t, ok := dest.(*time.Time); ok {
-				*t = mockTime
+			switch dest.(type) {
+			case time.Time, *time.Time:
+				v.Set(reflect.ValueOf(mockTime))
 			}
 		}
 	}
@@ -202,7 +203,7 @@ func TestResult_One(t *testing.T) {
 }
 
 func TestResult_All(t *testing.T) {
-	var zero, two Result // Example results
+	var zero, one, two Result // Example results
 
 	// Scan into values
 	var values []Values
@@ -273,6 +274,29 @@ func TestResult_All(t *testing.T) {
 	}
 	if !reflect.DeepEqual(users, wantUsers) {
 		t.Errorf("Unequal struct slices: want %v, have %v", wantUsers, users)
+	}
+
+	// Scan into a deeply nested struct
+	one = mockResult(1, "id", "CreatedAt", "Value")
+	var nested []embedded
+	if err := one.All(&nested); err != nil {
+		t.Errorf(
+			"Result.All should not error when scanned a nested struct: %s",
+			err,
+		)
+	}
+
+	wantNested := embedded{}
+	wantNested.Serial.ID = mockInt
+	wantNested.Timestamp.CreatedAt = mockTime
+	wantNested.Metadata = metadata{}
+	wantNested.Deep.Level2.Level3.Value = mockBool
+	if !reflect.DeepEqual(nested, []embedded{wantNested}) {
+		t.Errorf(
+			"Unequal nested struct: want %v, have %v",
+			[]embedded{wantNested},
+			nested,
+		)
 	}
 
 	// Scan into a slice of a single native type
