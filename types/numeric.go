@@ -78,7 +78,7 @@ func Real() numeric {
 func Double() numeric {
 	return numeric{
 		base: base{
-			name: "DOUBLE",
+			name: "DOUBLE PRECISION",
 		},
 	}
 }

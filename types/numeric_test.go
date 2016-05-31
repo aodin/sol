@@ -10,7 +10,7 @@ func TestNumeric(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error during DOUBLE Create(): %s", err)
 	}
-	if create != "DOUBLE" {
+	if create != "DOUBLE PRECISION" {
 		t.Errorf("Unexpected output of DOUBLE type: %s", create)
 	}
 }
