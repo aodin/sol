@@ -29,7 +29,7 @@ func TestSqlite3(t *testing.T) {
 		t.Fatalf("Failed to open connection: %s", err)
 	}
 	defer conn.Close()
-	sol.IntegrationTest(t, conn)
+	sol.IntegrationTest(t, conn, false)
 }
 
 // TestSqlite3_Transaction tests the transactional operations of Sqlite3,

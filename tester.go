@@ -103,17 +103,13 @@ func NewTester(t *testing.T, d dialect.Dialect) *tester {
 }
 
 // IntegrationTest runs a large, neutral dialect test
-func IntegrationTest(t *testing.T, conn *DB) {
+func IntegrationTest(t *testing.T, conn *DB, ddlCommit bool) {
 	// Perform all tests in a transaction
-	// TODO What features should be testing outside of a transaction?
-	tx, err := conn.Begin()
-	if err != nil {
-		t.Fatalf("Creating a new transaction should not error: %s", err)
-	}
-	defer tx.Rollback()
+	// TODO What features should be tested outside of a transaction?
 
-	// CREATE TABLE
-	// TODO foreign keys
+	// CREATE TABLE is performed outside of the transaction because any
+	// change to the DDL in MySQL is a implicit commit
+	// Other databases: http://stackoverflow.com/a/4736346
 	testusers := Table("testusers",
 		Column("id", types.Integer()),
 		Column("email", types.Varchar().Limit(255).NotNull()),
@@ -130,8 +126,20 @@ func IntegrationTest(t *testing.T, conn *DB) {
 		CreatedAt time.Time
 	}
 
-	if err = tx.Query(testusers.Create()); err != nil {
-		t.Fatalf("CREATE TABLE should not error: %s", err)
+	tx, err := conn.Begin()
+	if err != nil {
+		t.Fatalf("Creating a new transaction should not error: %s", err)
+	}
+	defer tx.Rollback()
+
+	if ddlCommit {
+		if err = conn.Query(testusers.Create().IfNotExists()); err != nil {
+			t.Fatalf("CREATE TABLE should not error: %s", err)
+		}
+	} else {
+		if err = tx.Query(testusers.Create().IfNotExists()); err != nil {
+			t.Fatalf("CREATE TABLE should not error: %s", err)
+		}
 	}
 
 	// INSERT by struct
@@ -237,6 +245,14 @@ func IntegrationTest(t *testing.T, conn *DB) {
 		)
 	}
 
+	var count int64
+	if err = tx.Query(Select(Count(testusers.C("id"))), &count); err != nil {
+		t.Fatalf("SELECT with COUNT should not fail: %s", err)
+	}
+	if count != 2 {
+		t.Errorf("Unexpected COUNT: want 2, have %d", count)
+	}
+
 	// DELETE
 	if err = tx.Query(
 		testusers.Delete().Where(testusers.C("email").Equals(admin.Email)),
@@ -245,6 +261,7 @@ func IntegrationTest(t *testing.T, conn *DB) {
 	}
 
 	// DROP TABLE
+	// TODO Since this is a DDL, this will likely commit in MySQL
 	if err = tx.Query(testusers.Drop()); err != nil {
 		t.Fatalf("DROP TABLE should not fail %s", err)
 	}

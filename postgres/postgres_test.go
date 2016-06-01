@@ -15,7 +15,7 @@ import (
 
 const travisCI = "host=localhost port=5432 dbname=sol_test user=postgres sslmode=disable"
 
-var conn *sol.DB
+var testconn *sol.DB
 var once sync.Once
 
 // getConn returns a postgres connection pool
@@ -28,12 +28,12 @@ func getConn(t *testing.T) *sol.DB {
 
 	once.Do(func() {
 		var err error
-		if conn, err = sol.Open("postgres", credentials); err != nil {
+		if testconn, err = sol.Open("postgres", credentials); err != nil {
 			t.Fatalf("Failed to open connection: %s", err)
 		}
-		conn.SetMaxOpenConns(20)
+		testconn.SetMaxOpenConns(20)
 	})
-	return conn
+	return testconn
 }
 
 var things = sol.Table("things",
@@ -79,7 +79,7 @@ var meetings = Table("meetings",
 // TestPostGres performs the standard integration test
 func TestPostGres(t *testing.T) {
 	conn := getConn(t) // TODO close
-	sol.IntegrationTest(t, conn)
+	sol.IntegrationTest(t, conn, false)
 }
 
 func TestPostGres_Create(t *testing.T) {

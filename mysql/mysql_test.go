@@ -12,7 +12,7 @@ import (
 
 const travisCI = "root@tcp(127.0.0.1:3306)/sol_test?parseTime=true"
 
-var conn *sol.DB
+var testconn *sol.DB
 var once sync.Once
 
 // getConn returns a MySQL connection pool
@@ -25,17 +25,17 @@ func getConn(t *testing.T) *sol.DB {
 
 	once.Do(func() {
 		var err error
-		if conn, err = sol.Open("mysql", credentials); err != nil {
+		if testconn, err = sol.Open("mysql", credentials); err != nil {
 			t.Fatalf("Failed to open connection: %s", err)
 		}
-		conn.SetMaxOpenConns(20)
+		testconn.SetMaxOpenConns(20)
 	})
-	return conn
+	return testconn
 }
 
 // TestMySQL performs the standard integration test
 func TestMySQL(t *testing.T) {
 	conn := getConn(t)
 	defer conn.Close()
-	sol.IntegrationTest(t, conn)
+	sol.IntegrationTest(t, conn, true)
 }
