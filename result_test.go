@@ -49,7 +49,15 @@ func (mock mock) Scan(dests ...interface{}) error {
 		)
 	}
 	for i, dest := range dests {
-		v := reflect.Indirect(reflect.ValueOf(dest))
+		v := reflect.ValueOf(dest)
+		if v.Kind() != reflect.Ptr {
+			return fmt.Errorf(
+				"Scan error on column %d: destination (%T) is not a pointer",
+				i, v.Kind(),
+			)
+		}
+
+		v = reflect.Indirect(v)
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			v.SetInt(int64(mock.counter)) // Test increments

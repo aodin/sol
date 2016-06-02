@@ -91,6 +91,8 @@ func (r Result) One(obj interface{}) error {
 		for i, field := range aligned {
 			if field.Exists() {
 				dest[i] = field.Value.Addr().Interface()
+			} else {
+				dest[i] = &dest[i] // Discard
 			}
 		}
 
@@ -167,6 +169,8 @@ func (r Result) All(obj interface{}) error {
 			for i, field := range aligned {
 				if field.Exists() {
 					dest[i] = newElem.FieldByIndex(field.Type.Index).Addr().Interface()
+				} else {
+					dest[i] = &dest[i] // Discard
 				}
 			}
 
