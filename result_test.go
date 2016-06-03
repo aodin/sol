@@ -328,8 +328,8 @@ func TestResult_allNative(t *testing.T) {
 	}
 }
 
-// Benchmark the scan
-func BenchmarkScan_Struct(b *testing.B) {
+// Benchmark the scanning of multiple results into a slice of structs
+func BenchmarkResults_allStruct(b *testing.B) {
 	var results Result
 	type user struct {
 		UserID  int64
@@ -345,7 +345,7 @@ func BenchmarkScan_Struct(b *testing.B) {
 	}
 }
 
-func BenchmarkScan_Values(b *testing.B) {
+func BenchmarkResults_allMap(b *testing.B) {
 	var results Result
 	type user struct {
 		UserID  int64
