@@ -118,114 +118,134 @@ func (r Result) One(obj interface{}) error {
 // is only a single result column, then the destination can be a
 // slice of a single native type (e.g. []int).
 func (r Result) All(obj interface{}) error {
-	objVal := reflect.ValueOf(obj)
-	if objVal.Kind() != reflect.Ptr {
+	value := reflect.ValueOf(obj)
+	if value.Kind() != reflect.Ptr {
 		return fmt.Errorf(
 			"sol: received a non-pointer destination for result.All",
 		)
 	}
 
-	objElem := objVal.Elem()
-	if objElem.Kind() != reflect.Slice {
+	list := value.Elem()
+	if list.Kind() != reflect.Slice {
 		return fmt.Errorf(
 			"sol: received a non-slice destination for result.All",
 		)
 	}
 
-	// Get the type of the slice element
-	elem := objElem.Type().Elem()
-
+	elem := list.Type().Elem()
 	columns, err := r.Columns()
 	if err != nil {
 		return fmt.Errorf("sol: error returning columns from result: %s", err)
 	}
 
-	total := objElem.Len() // Existing elements
-	index := 0             // Current scanner index
-
 	switch elem.Kind() {
 	case reflect.Struct:
-		fields := DeepFields(reflect.New(elem).Interface())
-		aligned := AlignFields(columns, fields)
-
-		// If nothing matched and the number of fields equals the number
-		// columns, then blindly align columns and fields
-		// TODO This may be too friendly of a feature
-		if NoMatchingFields(aligned) && len(fields) == len(columns) {
-			aligned = fields
-		}
-
-		dest := make([]interface{}, len(columns))
-		for r.Next() {
-			var newElem reflect.Value
-			if index < total {
-				// Match the values on the existing object
-				newElem = objElem.Index(index)
-			} else {
-				// Create a new element
-				newElem = reflect.New(elem).Elem()
-			}
-
-			for i, field := range aligned {
-				if field.Exists() {
-					dest[i] = newElem.FieldByIndex(field.Type.Index).Addr().Interface()
-				} else {
-					dest[i] = &dest[i] // Discard
-				}
-			}
-
-			if err := r.Scan(dest...); err != nil {
-				return fmt.Errorf("sol: error while scanning struct: %s", err)
-			}
-
-			if index >= total {
-				objElem.Set(reflect.Append(objElem, newElem))
-			}
-
-			index += 1
-		}
+		err = r.allStruct(columns, elem, list)
 	case reflect.Map:
-		_, ok := obj.(*[]Values)
-		if !ok {
-			return fmt.Errorf("sol: slices of maps are only allowed if they are of type sol.Values")
-		}
-
-		// TODO How to scan directly into values?
-		addr := make([]interface{}, len(columns))
-		dest := make([]interface{}, len(columns))
-		for i := range addr {
-			dest[i] = &addr[i]
-		}
-
-		for r.Next() {
-			// TODO scan into existing elements?
-			if err := r.Scan(dest...); err != nil {
-				return fmt.Errorf("sol: error while scanning map: %s", err)
-			}
-
-			values := Values{}
-			for i, name := range columns {
-				values[name] = addr[i]
-			}
-
-			objElem.Set(reflect.Append(objElem, reflect.ValueOf(values)))
-		}
+		err = r.allMap(columns, obj, list)
 	default: // TODO enumerate types?
-		// Single column results can be scanned into native types
-		// TODO scan into existing elements?
-		if len(columns) != 1 {
-			return fmt.Errorf(
-				"sol: unsupported destination for multi-column result: %s",
-				elem.Kind(),
-			)
-		}
-		for r.Next() {
-			newElem := reflect.New(elem).Elem()
-			if err := r.Scan(newElem.Addr().Interface()); err != nil {
-				return err
-			}
-			objElem.Set(reflect.Append(objElem, newElem))
-		}
+		err = r.allNative(columns, elem, list)
 	}
-	return r.Err()
+	if err != nil {
+		return err
+	}
+	return r.Err() // Check for delayed scan errors
+}
+
+// allStruct scanes the results into a slice of struct types
+func (r Result) allStruct(columns []string, elem reflect.Type, list reflect.Value) error {
+	fields := DeepFields(reflect.New(elem).Interface())
+	aligned := AlignFields(columns, fields)
+
+	// If nothing matched and the number of fields equals the number
+	// columns, then blindly align columns and fields
+	// TODO This may be too friendly of a feature
+	if NoMatchingFields(aligned) && len(fields) == len(columns) {
+		aligned = fields
+	}
+
+	// How many elements already exist? Merge scanned fields instead of
+	// overwriting an entire new element
+	existingElements := list.Len()
+	index := 0
+	dest := make([]interface{}, len(columns))
+	for r.Next() {
+		var newElem reflect.Value
+		if index < existingElements {
+			newElem = list.Index(index) // Merge with the existing element
+		} else {
+			newElem = reflect.New(elem).Elem() // Create a new element
+		}
+
+		for i, field := range aligned {
+			if field.Exists() {
+				dest[i] = newElem.FieldByIndex(field.Type.Index).Addr().Interface()
+			} else {
+				dest[i] = &dest[i] // Discard
+			}
+		}
+
+		if err := r.Scan(dest...); err != nil {
+			return fmt.Errorf("sol: error scanning struct: %s", err)
+		}
+
+		if index >= existingElements {
+			list.Set(reflect.Append(list, newElem))
+		}
+
+		index += 1
+	}
+	return nil
+}
+
+// allMap scans the results into a slice of Values
+func (r Result) allMap(columns []string, obj interface{}, list reflect.Value) error {
+	// TODO support scaning into existing or partially populated slices?
+	_, ok := obj.(*[]Values)
+	if !ok {
+		return fmt.Errorf(
+			"sol: slices of maps must have an element type of sol.Values",
+		)
+	}
+
+	// TODO How to scan directly into values?
+	addr := make([]interface{}, len(columns))
+	dest := make([]interface{}, len(columns))
+	for i := range addr {
+		dest[i] = &addr[i]
+	}
+
+	for r.Next() {
+		if err := r.Scan(dest...); err != nil {
+			return fmt.Errorf("sol: error scanning map slice: %s", err)
+		}
+
+		values := Values{}
+		for i, name := range columns {
+			values[name] = addr[i]
+		}
+
+		list.Set(reflect.Append(list, reflect.ValueOf(values)))
+	}
+	return nil
+}
+
+// allNative scans the results into a slice of a single native type,
+// such as []int
+func (r Result) allNative(columns []string, elem reflect.Type, list reflect.Value) error {
+	// TODO support scaning into existing or partially populated slices?
+	if len(columns) != 1 {
+		return fmt.Errorf(
+			"sol: unsupported destination for multi-column result: %s",
+			elem.Kind(),
+		)
+	}
+	for r.Next() {
+		newElem := reflect.New(elem).Elem()
+		if err := r.Scan(newElem.Addr().Interface()); err != nil {
+			return fmt.Errorf("sol: error scanning native slice: %s", err)
+		}
+		list.Set(reflect.Append(list, newElem))
+	}
+	return nil
 }

@@ -307,18 +307,24 @@ func TestResult_All(t *testing.T) {
 		)
 	}
 
-	// Scan into a slice of a single native type
-	var ints []int
-	two = mockResult(2, "int")
-	if err := two.All(&ints); err != nil {
-		t.Errorf(
-			"Result.All should not error when scanned into native type slices: %s",
-			err,
-		)
+}
+
+func TestResult_allNative(t *testing.T) {
+	single := mockResult(2, "int")
+	var have []int
+	if err := single.All(&have); err != nil {
+		t.Errorf("Result.allNative should not error when scanning: %s", err)
 	}
-	wantInts := []int{1, 2}
-	if !reflect.DeepEqual(ints, wantInts) {
-		t.Errorf("Unequal int slice: want %v, have %v", wantInts, ints)
+	want := []int{1, 2}
+	if !reflect.DeepEqual(want, have) {
+		t.Errorf("Unequal []int: want %v, have %v", want, have)
+	}
+
+	// Reset and try with multiple results
+	multi := mockResult(2, "int", "str")
+	var wrong []int
+	if err := multi.All(&wrong); err == nil {
+		t.Errorf("Result.All should error with an unmatched type: %s", err)
 	}
 }
 
