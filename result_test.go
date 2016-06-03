@@ -210,6 +210,35 @@ func TestResult_One(t *testing.T) {
 	}
 }
 
+func TestResult_oneStruct(t *testing.T) {
+	one := mockResult(1, "name", "created")
+
+	type Timestamp struct {
+		Created time.Time
+	}
+
+	type thing struct {
+		Name string
+		Timestamp
+	}
+
+	var have thing
+	if err := one.One(&have); err != nil {
+		t.Errorf("Result.oneStruct should not error when scanning: %s", err)
+	}
+
+	want := thing{
+		Name:      mockStr,
+		Timestamp: Timestamp{Created: mockTime},
+	}
+	if !reflect.DeepEqual(want, have) {
+		t.Errorf(
+			"unexpected Result.oneStruct values: want %+v, have %+v",
+			want, have,
+		)
+	}
+}
+
 func TestResult_All(t *testing.T) {
 	var zero, one, two Result // Example results
 

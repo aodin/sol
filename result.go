@@ -183,7 +183,7 @@ func (r Result) One(obj interface{}) error {
 		elem := reflect.Indirect(value)
 		switch elem.Kind() {
 		case reflect.Struct:
-			return r.oneStruct(columns, obj)
+			return r.oneStruct(columns, elem, obj)
 		default: // TODO enumerate types?
 			return r.oneNative(columns, elem)
 		}
@@ -223,7 +223,7 @@ func (r Result) oneMap(columns []string, value reflect.Value, obj interface{}) e
 }
 
 // oneStruct scans the result into a single struct type
-func (r Result) oneStruct(columns []string, obj interface{}) error {
+func (r Result) oneStruct(columns []string, elem reflect.Value, obj interface{}) error {
 	fields := DeepFields(obj)
 	aligned := AlignFields(columns, fields)
 
@@ -239,7 +239,7 @@ func (r Result) oneStruct(columns []string, obj interface{}) error {
 	}
 	for i, field := range aligned {
 		if field.Exists() {
-			dest[i] = field.Value.Addr().Interface()
+			dest[i] = elem.FieldByIndex(field.Type.Index).Addr().Interface()
 		} else {
 			dest[i] = &dest[i] // Discard
 		}
