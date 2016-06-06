@@ -5,8 +5,8 @@ import (
 )
 
 func TestNumeric(t *testing.T) {
-	typ := Double()
-	create, err := typ.Create(nil)
+	columnType := Double()
+	create, err := columnType.Create(nil) // No dialect needed
 	if err != nil {
 		t.Errorf("Unexpected error during DOUBLE Create(): %s", err)
 	}

@@ -45,8 +45,13 @@ func Character(n int) (t character) {
 	return
 }
 
-func Varchar() (t character) {
+// Varchar creates a new VARCHAR. Limit will be set if an argument is given -
+// all subsequent arguments will be ignored
+func Varchar(limit ...int) (t character) {
 	t.name = "VARCHAR"
+	if limit != nil {
+		t.limit = limit[0]
+	}
 	return
 }
 
