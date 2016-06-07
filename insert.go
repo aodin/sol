@@ -40,12 +40,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	// first element of the values list - otherwise create nil values
 	// TODO Create a ColumnValuesSet to handle the following?
 	aliases := Aliases{}
-	if len(stmt.valuesList) == 0 || len(stmt.valuesList[0]) == 0 {
-		stmt.valuesList = []Values{stmt.columns.EmptyValues()}
-		for _, column := range stmt.columns.order {
-			aliases[column.Name()] = column.Name() // ugly
-		}
-	} else {
+	if len(stmt.valuesList) != 0 && len(stmt.valuesList[0]) != 0 {
 		// Be friendly: take the intersection of the Values and the
 		// currently selected columns. The Values keys will be matched
 		// with the precedence:
@@ -64,6 +59,11 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 
 		// Remove the unmatched columns
 		stmt.columns = stmt.columns.Filter(aliases.Keys()...)
+	} else {
+		stmt.valuesList = []Values{stmt.columns.EmptyValues()}
+		for _, column := range stmt.columns.order {
+			aliases[column.Name()] = column.Name() // ugly
+		}
 	}
 
 	// No columns? no statement!
@@ -74,7 +74,7 @@ func (stmt InsertStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	// TODO Bulk insert syntax is dialect specific
 	// TODO must all Values must have the same keys?
 	var groups []string
-	if len(stmt.valuesList) > 0 {
+	if len(stmt.valuesList) != 0 {
 		groups = make([]string, len(stmt.valuesList))
 		for g, values := range stmt.valuesList {
 			group := make([]string, len(stmt.columns.order))
@@ -179,7 +179,7 @@ func Insert(selections ...Selectable) (stmt InsertStmt) {
 		columns = append(columns, selection.Columns()...)
 	}
 
-	if len(columns) < 1 {
+	if len(columns) == 0 {
 		stmt.AddMeta("sol: Insert() must be given at least one column")
 		return
 	}

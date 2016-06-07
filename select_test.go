@@ -98,6 +98,9 @@ func TestSelect(t *testing.T) {
 		`SELECT users.name FROM users OFFSET 1`,
 	)
 
+	// Select zero columns
+	expect.Error(Select())
+
 	// Select a column that doesn't exist
 	expect.Error(Select(users.C("what")))
 }

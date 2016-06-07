@@ -82,6 +82,7 @@ func TestInsert(t *testing.T) {
 	)
 
 	// Handle errors
+	expect.Error(Insert())
 	expect.Error(users.Insert().Values("a"))
 	expect.Error(users.Insert().Values([]int{1}))
 	expect.Error(users.Insert().Values([]struct{}{}))

@@ -69,7 +69,7 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	tables := strings.Join(stmt.compileTables(), ", ") // TODO use compilation?
 	compiled = append(compiled, selections, FROM, tables)
 
-	if len(stmt.joins) > 0 {
+	if len(stmt.joins) != 0 {
 		for _, j := range stmt.joins {
 			jc, err := j.Compile(d, ps)
 			if err != nil {
@@ -301,7 +301,7 @@ func Select(selections ...Selectable) (stmt SelectStmt) {
 		columns = append(columns, selection.Columns()...)
 	}
 
-	if len(columns) < 1 {
+	if len(columns) == 0 {
 		stmt.AddMeta("sol: Select() must be given at least one column")
 		return
 	}
