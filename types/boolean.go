@@ -16,16 +16,20 @@ var (
 )
 
 type boolean struct {
-	base
+	BaseType
 	value *bool
 }
 
+var _ Type = boolean{}
+
 func (t boolean) Create(d dialect.Dialect) (string, error) {
-	compiled := t.base.name
+	compiled, err := t.BaseType.Create(d)
+	if err != nil {
+		return "", err
+	}
 	if t.value != nil {
 		compiled += strings.ToUpper(fmt.Sprintf(" DEFAULT %t", *t.value))
 	}
-	compiled += t.base.suffix()
 	return compiled, nil
 }
 
@@ -40,16 +44,16 @@ func (t boolean) Default(value bool) boolean {
 }
 
 func (t boolean) NotNull() boolean {
-	t.base.NotNull()
+	t.BaseType.NotNull()
 	return t
 }
 
 func (t boolean) Unique() boolean {
-	t.base.Unique()
+	t.BaseType.Unique()
 	return t
 }
 
+// Boolean creats a new BOOLEAN datatype
 func Boolean() (t boolean) {
-	t.name = "BOOLEAN"
-	return
+	return boolean{BaseType: Base("BOOLEAN")}
 }

@@ -2,22 +2,23 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aodin/sol/dialect"
 )
 
 type character struct {
-	base
+	BaseType
 	limit int
 }
 
 func (t character) Create(d dialect.Dialect) (string, error) {
-	compiled := t.base.name
+	name := t.BaseType.name
 	if t.limit != 0 {
-		compiled += fmt.Sprintf("(%d)", t.limit)
+		name += fmt.Sprintf("(%d)", t.limit)
 	}
-	compiled += t.base.suffix()
-	return compiled, nil
+	compiled := append([]string{name}, t.BaseType.Options()...)
+	return strings.Join(compiled, " "), nil
 }
 
 func (t character) Limit(n int) character {
@@ -26,12 +27,12 @@ func (t character) Limit(n int) character {
 }
 
 func (t character) NotNull() character {
-	t.base.NotNull()
+	t.BaseType.NotNull()
 	return t
 }
 
 func (t character) Unique() character {
-	t.base.Unique()
+	t.BaseType.Unique()
 	return t
 }
 

@@ -5,8 +5,8 @@ import (
 )
 
 func TestCharacter(t *testing.T) {
-	columnType := Varchar(32)
-	create, err := columnType.Create(nil) // No dialect needed
+	datatype := Varchar(32)
+	create, err := datatype.Create(nil) // No dialect needed
 	if err != nil {
 		t.Errorf("Unexpected error during VARCHAR Create(): %s", err)
 	}

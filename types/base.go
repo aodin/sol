@@ -1,33 +1,49 @@
 package types
 
 import (
+	"strings"
+
 	"github.com/aodin/sol/dialect"
 )
 
-type base struct {
+// BaseType is foundational datatype that includes fields that nearly all
+// datatypes implement
+type BaseType struct {
 	name      string
 	isNotNull bool
 	isUnique  bool
 }
 
-func (t base) Create(d dialect.Dialect) (string, error) {
-	return t.name + t.suffix(), nil
+var _ Type = BaseType{}
+
+// Create generates the
+func (base BaseType) Create(d dialect.Dialect) (string, error) {
+	clauses := append([]string{base.name}, base.Options()...)
+	return strings.Join(clauses, " "), nil
 }
 
-func (t *base) Unique() {
-	t.isUnique = true
+// Unique sets the BaseType to UNIQUE
+func (base *BaseType) Unique() {
+	base.isUnique = true
 }
 
-func (t *base) NotNull() {
-	t.isNotNull = true
+// NotNull sets the BaseType to NOT NULL
+func (base *BaseType) NotNull() {
+	base.isNotNull = true
 }
 
-func (t base) suffix() (compiled string) {
-	if t.isNotNull {
-		compiled += " NOT NULL"
+// Options returns the BaseTYPE options as a slice of strings
+func (base BaseType) Options() (compiled []string) {
+	if base.isNotNull {
+		compiled = append(compiled, "NOT NULL")
 	}
-	if t.isUnique {
-		compiled += " UNIQUE"
+	if base.isUnique {
+		compiled = append(compiled, "UNIQUE")
 	}
 	return
+}
+
+// Base creates a new BaseType
+func Base(name string) BaseType {
+	return BaseType{name: name}
 }
