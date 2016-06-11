@@ -1,29 +1,29 @@
 package types
 
-type datetime struct {
+type DatetimeType struct {
 	BaseType
 }
 
-var _ Type = datetime{}
+var _ Type = DatetimeType{}
 
-func (t datetime) NotNull() datetime {
-	t.BaseType.NotNull()
+func (t DatetimeType) NotNull() DatetimeType {
+	t.BaseType.SetNotNull()
 	return t
 }
 
-func (t datetime) Unique() datetime {
-	t.BaseType.Unique()
+func (t DatetimeType) Unique() DatetimeType {
+	t.BaseType.SetUnique()
 	return t
 }
 
-func Date() datetime {
-	return datetime{BaseType: Base("DATE")}
+func Date() DatetimeType {
+	return DatetimeType{BaseType: Base("DATE")}
 }
 
-func Datetime() datetime {
-	return datetime{BaseType: Base("DATETIME")}
+func Datetime() DatetimeType {
+	return DatetimeType{BaseType: Base("DATETIME")}
 }
 
-func Timestamp() datetime {
-	return datetime{BaseType: Base("TIMESTAMP")}
+func Timestamp() DatetimeType {
+	return DatetimeType{BaseType: Base("TIMESTAMP")}
 }

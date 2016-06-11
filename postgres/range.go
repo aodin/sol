@@ -32,31 +32,31 @@ func (t rangeType) Unique() rangeType {
 }
 
 func Int4Range() (t rangeType) {
-	t.name = "int4range"
+	t.name = "INT4RANGE"
 	return
 }
 
 func Int8Range() (t rangeType) {
-	t.name = "int8range"
+	t.name = "INT8RANGE"
 	return
 }
 
 func NumRange() (t rangeType) {
-	t.name = "numrange"
+	t.name = "NUMRANGE"
 	return
 }
 
 func TimestampRange() (t rangeType) {
-	t.name = "tsrange"
+	t.name = "TSRANGE"
 	return
 }
 
 func TimestampWithTimezoneRange() (t rangeType) {
-	t.name = "tstzrange"
+	t.name = "TSTZRANGE"
 	return
 }
 
 func DateRange() (t rangeType) {
-	t.name = "daterange"
+	t.name = "DATERANGE"
 	return
 }

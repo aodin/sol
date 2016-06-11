@@ -7,12 +7,14 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
-type character struct {
+type CharacterType struct {
 	BaseType
 	limit int
 }
 
-func (t character) Create(d dialect.Dialect) (string, error) {
+var _ Type = Varchar()
+
+func (t CharacterType) Create(d dialect.Dialect) (string, error) {
 	name := t.BaseType.name
 	if t.limit != 0 {
 		name += fmt.Sprintf("(%d)", t.limit)
@@ -21,26 +23,26 @@ func (t character) Create(d dialect.Dialect) (string, error) {
 	return strings.Join(compiled, " "), nil
 }
 
-func (t character) Limit(n int) character {
+func (t CharacterType) Limit(n int) CharacterType {
 	t.limit = n
 	return t
 }
 
-func (t character) NotNull() character {
-	t.BaseType.NotNull()
+func (t CharacterType) NotNull() CharacterType {
+	t.BaseType.SetNotNull()
 	return t
 }
 
-func (t character) Unique() character {
-	t.BaseType.Unique()
+func (t CharacterType) Unique() CharacterType {
+	t.BaseType.SetUnique()
 	return t
 }
 
-func Char(n int) character {
+func Char(n int) CharacterType {
 	return Character(n)
 }
 
-func Character(n int) (t character) {
+func Character(n int) (t CharacterType) {
 	t.name = "CHAR"
 	t.limit = n
 	return
@@ -48,7 +50,7 @@ func Character(n int) (t character) {
 
 // Varchar creates a new VARCHAR. Limit will be set if an argument is given -
 // all subsequent arguments will be ignored
-func Varchar(limit ...int) (t character) {
+func Varchar(limit ...int) (t CharacterType) {
 	t.name = "VARCHAR"
 	if limit != nil {
 		t.limit = limit[0]
@@ -56,7 +58,7 @@ func Varchar(limit ...int) (t character) {
 	return
 }
 
-func Text() (t character) {
+func Text() (t CharacterType) {
 	t.name = "TEXT"
 	return
 }

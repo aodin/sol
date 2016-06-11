@@ -259,6 +259,16 @@ func (col ColumnElem) NotILike(search string) BinaryClause {
 // type: ints, strings...
 //  table.Select().Where(table.C("id").In([]int64{1, 2, 3}))
 func (col ColumnElem) In(args interface{}) BinaryClause {
+	return col.in(" IN ", args)
+}
+
+// NotIn create a comparison clause with a NOT IN operator that can be used
+// in consitional clauses.
+func (col ColumnElem) NotIn(args interface{}) BinaryClause {
+	return col.in(" NOT IN ", args)
+}
+
+func (col ColumnElem) in(sep string, args interface{}) BinaryClause {
 	// Create the inner array clause and parameters
 	a := ArrayClause{clauses: make([]Clause, 0), sep: ", "}
 
@@ -275,7 +285,7 @@ func (col ColumnElem) In(args interface{}) BinaryClause {
 	return BinaryClause{
 		Pre:  col,
 		Post: FuncClause{Inner: a},
-		Sep:  " IN ",
+		Sep:  sep,
 	}
 }
 
@@ -319,6 +329,7 @@ func (col ColumnElem) NullsLast() OrderedColumn {
 
 // Column is the constructor for a ColumnElem
 func Column(name string, datatype types.Type) ColumnElem {
+	// TODO prevent nil datatypes from being used: panic? invalid column?
 	return ColumnElem{
 		name:     name,
 		datatype: datatype,

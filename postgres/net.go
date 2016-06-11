@@ -3,7 +3,7 @@ package postgres
 import "github.com/aodin/sol/types"
 
 func Cidr() types.BaseType {
-	return types.Base("DATE")
+	return types.Base("CIDR")
 }
 
 func Inet() types.BaseType {

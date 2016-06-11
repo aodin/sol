@@ -11,6 +11,8 @@ A valid PostGres connection string should be set on the environmental variable `
 
 If the environmental variable is empty, the test will default to a [Travis CI](https://docs.travis-ci.com/user/database-setup/#PostgreSQL) connection string, which will likely panic on your local system.
 
+The testing database must have the `uuid-ossp` enabled.
+
 #### Docker
 
 Docker hub provides an [official PostGres image](https://hub.docker.com/_/postgres/). A container can be started with:

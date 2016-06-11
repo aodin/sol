@@ -2,36 +2,33 @@ package postgres
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aodin/sol/dialect"
+	"github.com/aodin/sol/types"
 )
 
-// TODO Don't hardcode utc?
-const Now = "now() at time zone 'utc'"
+const Now = "TIMEZONE('utc'::TEXT, now())"
 
 type timestamp struct {
-	name         string
-	isNotNull    bool
-	isUnique     bool
+	types.BaseType
 	withTimezone bool
-	defaultValue string // TODO Additional defaults?
+	defaultValue string // TODO Use BaseType default?
 }
 
 func (t timestamp) Create(d dialect.Dialect) (string, error) {
-	compiled := t.name
+	name := t.BaseType.Name()
 	if t.withTimezone {
-		compiled += " with time zone"
+		name += " WITH TIME ZONE"
 	}
-	if t.isNotNull {
-		compiled += " NOT NULL"
-	}
-	if t.isUnique {
-		compiled += " UNIQUE"
-	}
+	compiled := append([]string{name}, t.BaseType.Options()...)
+
 	if t.defaultValue != "" {
-		compiled += fmt.Sprintf(" DEFAULT (%s)", t.defaultValue)
+		compiled = append(
+			compiled, fmt.Sprintf("DEFAULT (%s)", t.defaultValue),
+		)
 	}
-	return compiled, nil
+	return strings.Join(compiled, " "), nil
 }
 
 func (t timestamp) Default(value string) timestamp {
@@ -40,12 +37,12 @@ func (t timestamp) Default(value string) timestamp {
 }
 
 func (t timestamp) NotNull() timestamp {
-	t.isNotNull = true
+	t.BaseType.SetNotNull()
 	return t
 }
 
 func (t timestamp) Unique() timestamp {
-	t.isUnique = true
+	t.BaseType.SetUnique()
 	return t
 }
 
@@ -62,16 +59,13 @@ func (t timestamp) WithTimezone() timestamp {
 
 // TODO Date cannot have a time zone
 func Date() (t timestamp) {
-	t.name = "date"
-	return
+	return timestamp{BaseType: types.Base("DATE")}
 }
 
 func Time() (t timestamp) {
-	t.name = "time"
-	return
+	return timestamp{BaseType: types.Base("TIME")}
 }
 
 func Timestamp() (t timestamp) {
-	t.name = "timestamp"
-	return
+	return timestamp{BaseType: types.Base("TIMESTAMP")}
 }

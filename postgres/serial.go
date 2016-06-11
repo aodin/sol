@@ -1,35 +1,25 @@
 package postgres
 
 import (
-	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
 )
 
 // serial is a postgres-specific auto-increment type. It implies NOT NULL.
 type serial struct {
-	name     string
-	isUnique bool
+	types.BaseType
 }
 
 // serial must implement the Type interface
 var _ types.Type = serial{}
 
-func (t serial) Create(d dialect.Dialect) (string, error) {
-	compiled := t.name + " NOT NULL"
-	if t.isUnique {
-		compiled += " UNIQUE"
-	}
-	return compiled, nil
-}
-
-// Unique sets the serial type as unique
 func (t serial) Unique() serial {
-	t.isUnique = true
+	t.BaseType.SetUnique()
 	return t
 }
 
-// Serial creates a new serial type
+// Serial creates a new serial type. Serial implies NOT NULL
 func Serial() (t serial) {
-	t.name = "serial"
-	return
+	base := types.Base("SERIAL")
+	base.SetNotNull()
+	return serial{BaseType: base}
 }
