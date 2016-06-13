@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,6 +40,11 @@ func getConn(t *testing.T) *sol.DB {
 var things = sol.Table("things",
 	sol.Column("name", types.Varchar()),
 	sol.Column("created_at", Timestamp().Default(Now)),
+)
+
+var thingsWithoutNow = sol.Table("things",
+	sol.Column("name", types.Varchar()),
+	sol.Column("created_at", Timestamp()),
 )
 
 type thing struct {
@@ -80,6 +86,37 @@ var meetings = Table("meetings",
 func TestPostGres(t *testing.T) {
 	conn := getConn(t) // TODO close
 	sol.IntegrationTest(t, conn, false)
+}
+
+func TestPostGres_NullTime(t *testing.T) {
+	conn := getConn(t) // TODO close
+
+	tx, err := conn.Begin()
+	require.Nil(t, err, "Creating a new transaction should not error")
+	defer tx.Rollback()
+
+	// TODO temp tables
+	require.Nil(t,
+		tx.Query(thingsWithoutNow.Create().Temporary().IfNotExists()),
+		`Create table "%s" should not error`, thingsWithoutNow.Name(),
+	)
+
+	type nullthing struct {
+		Name      string
+		CreatedAt pq.NullTime `db:"created_at"`
+	}
+
+	nonzero := nullthing{
+		Name:      "a",
+		CreatedAt: pq.NullTime{Valid: true, Time: time.Now()},
+	}
+	tx.Query(thingsWithoutNow.Insert().Values(nonzero))
+
+	var things []nullthing
+	tx.Query(thingsWithoutNow.Select(), &things)
+	require.Equal(t, 1, len(things))
+	assert.True(t, things[0].CreatedAt.Valid)
+	assert.False(t, things[0].CreatedAt.Time.IsZero())
 }
 
 func TestPostGres_Create(t *testing.T) {
