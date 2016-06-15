@@ -6,8 +6,10 @@ import (
 	"github.com/aodin/sol/dialect"
 )
 
-// TODO Don't hardcode utc?
-const Now = "now() at time zone 'utc'"
+const (
+	NowUTC = "now() at time zone 'utc'"
+	Now    = "now()"
+)
 
 type timestamp struct {
 	name         string
