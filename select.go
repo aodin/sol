@@ -16,6 +16,7 @@ type Selectable interface {
 // SelectStmt is the internal representation of an SQL SELECT statement.
 type SelectStmt struct {
 	ConditionalStmt
+	alias      string
 	tables     []Tabular
 	columns    ColumnSet
 	joins      []JoinClause
@@ -28,19 +29,32 @@ type SelectStmt struct {
 	offset     int
 }
 
+// Since SELECT statements can be used in FROM clauses, SelectStmt must
+// implement the Tabular interface
+var _ Tabular = SelectStmt{}
+
 // String outputs the parameter-less SELECT statement in a neutral dialect.
 func (stmt SelectStmt) String() string {
 	compiled, _ := stmt.Compile(&defaultDialect{}, Params())
 	return compiled
 }
 
+// As sets the alias for this statement
+func (stmt SelectStmt) As(alias string) SelectStmt {
+	stmt.alias = alias
+	return stmt
+}
+
 // TODO create a TableSet type?
-func (stmt SelectStmt) compileTables() []string {
+func (stmt SelectStmt) compileTables(d dialect.Dialect, ps *Parameters) ([]string, error) {
 	names := make([]string, len(stmt.tables))
+	var err error
 	for i, table := range stmt.tables {
-		names[i] = table.Name()
+		if names[i], err = table.Compile(d, ps); err != nil {
+			return nil, err
+		}
 	}
-	return names
+	return names, nil
 }
 
 func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
@@ -66,8 +80,11 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 		return "", nil
 	}
 
-	tables := strings.Join(stmt.compileTables(), ", ") // TODO use compilation?
-	compiled = append(compiled, selections, FROM, tables)
+	tables, err := stmt.compileTables(d, ps)
+	if err != nil {
+		return "", nil
+	}
+	compiled = append(compiled, selections, FROM, strings.Join(tables, ", "))
 
 	if len(stmt.joins) != 0 {
 		for _, j := range stmt.joins {
@@ -116,7 +133,44 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	if stmt.offset != 0 {
 		compiled = append(compiled, OFFSET, fmt.Sprintf("%d", stmt.offset))
 	}
+
+	if stmt.alias != "" {
+		return fmt.Sprintf(
+			"(%s) AS %s",
+			strings.Join(compiled, WHITESPACE), stmt.alias,
+		), nil
+	}
+
 	return strings.Join(compiled, WHITESPACE), nil
+}
+
+// Columns returns all the columns within the SELECT. This method implements
+// the Tabular interface
+func (stmt SelectStmt) Columns() []ColumnElem {
+	return stmt.columns.All()
+}
+
+// Name returns the name of the statement's alias or the name of its
+// first table. It will return nothing if neither an alias or
+// any tables exist.
+func (stmt SelectStmt) Name() string {
+	if stmt.alias != "" {
+		return stmt.alias
+	}
+	if len(stmt.tables) != 0 {
+		return stmt.tables[0].Name()
+	}
+	return ""
+}
+
+func (stmt SelectStmt) Table() *TableElem {
+	// Create a new table from the statement's selections
+	// TODO this ignores an error!
+	columns, _ := stmt.columns.MakeUnique()
+	return &TableElem{
+		name:    stmt.Name(),
+		columns: columns,
+	}
 }
 
 func (stmt SelectStmt) hasTable(name string) bool {

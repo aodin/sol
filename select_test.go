@@ -98,6 +98,13 @@ func TestSelect(t *testing.T) {
 		`SELECT users.name FROM users OFFSET 1`,
 	)
 
+	// Test nested SELECT statements
+	// TODO the alias does not make much sense
+	expect.SQL(
+		Select(users.C("name")).From(users.Select().Limit(1).As("users")),
+		`SELECT users.name FROM (SELECT users.id, users.email, users.name, users.password, users.created_at FROM users LIMIT 1) AS users`,
+	)
+
 	// Select zero columns
 	expect.Error(Select())
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aodin/sol/dialect"
 	"github.com/aodin/sol/types"
 )
 
@@ -14,6 +15,7 @@ type Tabular interface {
 	// (2) Enumerate all the methods an implmentation would require
 	// Columnar and Tabular both use method (1)
 	// Name has been left as a legacy shortcut but may be removed
+	Compiles
 	Selectable
 	Name() string
 	Table() *TableElem
@@ -54,6 +56,10 @@ func (table TableElem) C(name string) ColumnElem {
 // Columns returns all the table columns in the original schema order
 func (table TableElem) Columns() []ColumnElem {
 	return table.columns.All()
+}
+
+func (table TableElem) Compile(d dialect.Dialect, ps *Parameters) (string, error) {
+	return table.Name(), nil
 }
 
 // Create returns a CREATE statement for the table
