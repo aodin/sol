@@ -113,6 +113,23 @@ ColumnLoop:
 	return
 }
 
+func (set ColumnSet) MakeUnique() (UniqueColumnSet, error) {
+	unique := UniqueColumns()
+	var err error
+	for _, column := range set.All() {
+		// If an alias exists, then replace the column name
+		if column.alias != "" {
+			column.name = column.alias
+			column.alias = ""
+		}
+
+		if unique, err = unique.Add(column); err != nil {
+			return unique, err
+		}
+	}
+	return unique, nil
+}
+
 // Columns creates a new ColumnSet
 func Columns(columns ...ColumnElem) ColumnSet {
 	return ColumnSet{order: columns}
