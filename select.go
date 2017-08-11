@@ -105,9 +105,11 @@ func (stmt SelectStmt) Compile(d dialect.Dialect, ps *Parameters) (string, error
 	}
 
 	if stmt.groupBy.Exists() {
-		compiled = append(
-			compiled, GROUPBY, strings.Join(stmt.groupBy.FullNames(), ", "),
-		)
+		cc, err := stmt.groupBy.Compile(d, ps)
+		if err != nil {
+			return "", err
+		}
+		compiled = append(compiled, GROUPBY, cc)
 	}
 
 	if stmt.having != nil {

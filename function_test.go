@@ -16,6 +16,11 @@ func TestFunctions(t *testing.T) {
 	)
 
 	expect.SQL(
+		Select(Date(users.C("created_at"))),
+		`SELECT DATE(users.created_at) FROM users`,
+	)
+
+	expect.SQL(
 		Select(DatePart("hour", users.C("created_at")).As("Hour")),
 		`SELECT DATE_PART('hour', users.created_at) AS "Hour" FROM users`,
 	)

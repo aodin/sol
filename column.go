@@ -83,7 +83,7 @@ func (col ColumnElem) Create(d dialect.Dialect) (string, error) {
 }
 
 // FullName prefixes the column name with the table name
-// It deos not include opreators (such as 'max')
+// It does not include operators (such as 'max')
 func (col ColumnElem) FullName() string {
 	return fmt.Sprintf(`%s.%s`, col.table.Name(), col.name)
 }

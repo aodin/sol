@@ -86,6 +86,16 @@ func TestSelect(t *testing.T) {
 		2,
 	)
 
+	expect.SQL(
+		Select(
+			Date(users.C("created_at")),
+			Count(users.C("id")),
+		).GroupBy(
+			Date(users.C("created_at")),
+		),
+		`SELECT DATE(users.created_at), COUNT(users.id) FROM users GROUP BY DATE(users.created_at)`,
+	)
+
 	// Test limit
 	expect.SQL(
 		Select(users.C("name")).Limit(1),
