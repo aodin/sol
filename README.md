@@ -40,12 +40,17 @@ type User struct {
 }
 
 func main() {
-	// Connect to an in-memory sqlite3 instance
+	// Create a connection pool for an in-memory sqlite3 instance
 	conn, err := sol.Open("sqlite3", ":memory:")
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	defer conn.Close()
+
+	// Test the connection
+	if err := conn.Ping(); err != nil {
+		log.Fatalf("Failed to open a database connection: %v", err)
+	}
 
 	// Create the users table
 	conn.Query(Users.Create())
@@ -343,4 +348,4 @@ expect.Error(sql.Select(Users.C("does-not-exist")))
 
 Happy Hacking!
 
-aodin, 2015-2016
+aodin, 2015-2017
